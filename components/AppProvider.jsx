@@ -84,6 +84,9 @@ export default function AppProvider({ children }) {
     }));
   }, []);
 
+  // Dipakai sinkronisasi database untuk menimpa sebagian state (menu, favorit, riwayat) dengan data akun.
+  const hydrate = useCallback((patch) => setState((s) => ({ ...s, ...patch })), []);
+
   const toggleFavorit = useCallback((id) => setState((s) => ({ ...s, favorit: s.favorit.includes(id) ? s.favorit.filter((x) => x !== id) : [...s.favorit, id] })), []);
 
   const addExtra = useCallback((id) => setState((s) => (s.extra.includes(id) ? s : { ...s, extra: [...s.extra, id] })), []);
@@ -323,6 +326,7 @@ export default function AppProvider({ children }) {
         generatePlan,
         addExtra,
         toggleFavorit,
+        hydrate,
         updateRecipeInPlan,
         removeRecipeFromPlan,
         addRecipeToPlan,

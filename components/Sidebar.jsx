@@ -1,8 +1,9 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home, UtensilsCrossed, ShoppingBag, HeartPulse, User, Settings, Refrigerator, X } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Home, UtensilsCrossed, ShoppingBag, HeartPulse, User, Settings, Refrigerator, X, LogOut } from 'lucide-react';
 import { useApp } from './AppProvider';
+import { supabaseBrowser } from '@/lib/supabase/client';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Beranda', Icon: Home },
@@ -26,7 +27,15 @@ function Logo() {
 
 export default function Sidebar() {
   const path = usePathname();
-  const { getShoppingItems, checked, isSidebarOpen, closeSidebar } = useApp();
+  const router = useRouter();
+  const { getShoppingItems, checked, isSidebarOpen, closeSidebar, reset } = useApp();
+  const keluar = async () => {
+    try { await supabaseBrowser().auth.signOut(); } catch (e) { /* tetap keluar di sisi aplikasi */ }
+    reset(); // hapus data lokal agar tidak terlihat akun berikutnya di perangkat ini
+    closeSidebar();
+    router.push('/login');
+    router.refresh();
+  };
 
   const shoppingItems = getShoppingItems ? getShoppingItems() : [];
   const perluDibeli = shoppingItems.filter((x) => !x.sudahAda && !checked[x.nama]).length;
@@ -59,7 +68,12 @@ export default function Sidebar() {
   );
 
   const footer = (
-    <div className="p-5 text-center text-[11px] text-white/60">NutriKos v2.0 · Pola Makan Sehat &amp; Hemat</div>
+    <div className="space-y-3 p-5">
+      <button onClick={keluar} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-white/85 transition-colors hover:bg-white/10 hover:text-white">
+        <LogOut size={19} /> Log Out
+      </button>
+      <div className="text-center text-[11px] text-white/60">NutriKos v2.0 · Pola Makan Sehat &amp; Hemat</div>
+    </div>
   );
 
   return (

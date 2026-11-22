@@ -1,9 +1,6 @@
 import './globals.css';
 import AppProvider from '@/components/AppProvider';
-import Header from '@/components/Header';
-import BottomNav from '@/components/BottomNav';
-import Sidebar from '@/components/Sidebar';
-import ChatAI from '@/components/ChatAI';
+import Shell from '@/components/Shell';
 
 export const metadata = {
   title: 'NutriKos - Menu Hemat & Bergizi untuk Anak Kos',
@@ -22,17 +19,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <AppProvider>
-          <div className="flex min-h-screen w-full bg-surface">
-            <Sidebar />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <Header />
-              <main className="w-full flex-1 min-w-0 px-4 py-6 sm:px-6 md:px-8 xl:px-10 pb-28 lg:pb-12">
-                {children}
-              </main>
-            </div>
-            <ChatAI />
-            <BottomNav />
-          </div>
+          <Shell>{children}</Shell>
         </AppProvider>
       </body>
     </html>

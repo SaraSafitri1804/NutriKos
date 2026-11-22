@@ -13,19 +13,25 @@ export default function ProfilSaya() {
   const [form, setForm] = useState(null);
   const [toast, setToast] = useState(false);
 
-  useEffect(() => { if (ready && !form) setForm(profile); }, [ready, form, profile]);
-  if (!ready || !form) return null;
+  // Isi form setelah data akun selesai dimuat dari database (atau setelah 2,5 detik bila tanpa koneksi),
+  // agar menyimpan tidak menimpa data akun dengan data lokal yang lama.
+  const [lewat, setLewat] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setLewat(true), 2500); return () => clearTimeout(t); }, []);
+  useEffect(() => {
+    if (ready && (profile.akunId || lewat) && (!form || (profile.akunId && form.akunId !== profile.akunId))) setForm(profile);
+  }, [ready, lewat, profile, form]);
+  if (!ready || !form) return <div className="card text-sm text-slate-500">Memuat data akun...</div>;
 
   const T = targetGizi(profile);
   const hariTercatat = Object.keys(log || {}).length;
   const ubah = (patch) => setForm((f) => ({ ...f, ...patch }));
   const simpan = () => {
     if (!form.nama.trim()) return;
-    setProfile({ nama: form.nama.trim(), email: form.email.trim(), kampus: form.kampus.trim(), prodi: form.prodi.trim(), semester: form.semester, avatar: form.avatar });
+    setProfile({ nama: form.nama.trim(), kampus: form.kampus.trim(), prodi: form.prodi.trim(), semester: form.semester, avatar: form.avatar });
     setToast(true);
     setTimeout(() => setToast(false), 2500);
   };
-  const resetData = () => { if (confirm('Hapus semua data NutriKos di perangkat ini?')) { reset(); router.push('/'); } };
+  const resetData = () => { if (confirm('Reset catatan belanja di perangkat ini? Profil, menu, favorit, dan riwayat akunmu tetap tersimpan.')) { reset(); router.push('/'); } };
   const sisaPantangan = PANTANGAN_OPTIONS.filter((p) => !profile.pantangan.includes(p));
 
   return (
@@ -70,7 +76,7 @@ export default function ProfilSaya() {
             <h2 className="text-lg font-extrabold">Data Diri Mahasiswa</h2>
             <div className="grid gap-4 md:grid-cols-2">
               <div><label className="label" htmlFor="nama">Nama lengkap</label><input id="nama" className="input" value={form.nama} onChange={(e) => ubah({ nama: e.target.value })} /></div>
-              <div><label className="label" htmlFor="email">Alamat email</label><input id="email" type="email" className="input" placeholder="nama@email.com" value={form.email} onChange={(e) => ubah({ email: e.target.value })} /></div>
+              <div><label className="label" htmlFor="email">Email akun (untuk login)</label><input id="email" type="email" className="input bg-slate-100 text-slate-500" value={form.email} readOnly aria-readonly="true" /></div>
               <div><label className="label" htmlFor="kampus">Asal kampus</label><input id="kampus" className="input" value={form.kampus} onChange={(e) => ubah({ kampus: e.target.value })} /></div>
               <div><label className="label" htmlFor="prodi">Program studi</label><input id="prodi" className="input" value={form.prodi} onChange={(e) => ubah({ prodi: e.target.value })} /></div>
               <div><label className="label" htmlFor="smt">Semester saat ini</label>
