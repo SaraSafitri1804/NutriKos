@@ -1,68 +1,54 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Bell, Menu } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { Bell, Menu, Search } from 'lucide-react';
 import { useApp } from './AppProvider';
 
-const NAMA = {
-  '/': 'Beranda',
-  '/profil-kos': 'Profil Kos',
-  '/menu': 'Rekomendasi Menu',
-  '/bahan-sisa': 'Cek Bahan Sisa',
-  '/belanja': 'Daftar Belanja',
-  '/gizi': 'Gizi Mingguan',
-  '/profil': 'Profil Saya',
-};
-
 export default function Header() {
-  const path = usePathname();
+  const router = useRouter();
   const { profile, toggleSidebar } = useApp();
-  const nama = NAMA[path] || (path.startsWith('/menu/') ? 'Detail Resep' : '');
+  const [cari, setCari] = useState('');
+
+  const kirim = (e) => {
+    e.preventDefault();
+    const q = cari.trim();
+    router.push(q ? `/menu?q=${encodeURIComponent(q)}` : '/menu');
+  };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 shadow-xs backdrop-blur sm:px-6 lg:px-8">
-      <div className="flex items-center gap-3">
-        {/* Mobile Hamburger Button */}
-        <button
-          onClick={toggleSidebar}
-          aria-label="Buka Menu Navigasi"
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 hover:text-brand-dark transition-colors lg:hidden"
-        >
-          <Menu size={22} />
-        </button>
+    <header className="sticky top-0 z-40 flex h-16 w-full items-center gap-3 bg-surface/95 px-4 backdrop-blur sm:px-6 lg:px-8">
+      <button
+        onClick={toggleSidebar}
+        aria-label="Buka Menu Navigasi"
+        className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 hover:bg-white lg:hidden"
+      >
+        <Menu size={22} />
+      </button>
 
-        <Link href="/" className="flex items-center gap-2.5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Logo NutriKos" className="h-9 w-9 object-contain" />
-          <div className="leading-tight">
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-extrabold tracking-tight">
-                <span className="text-brand-dark">Nutri</span>
-                <span className="text-accent">Kos</span>
-              </span>
-              <span className="hidden rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-bold text-brand-deeper sm:inline-block">
-                Hemat & Sehat
-              </span>
-            </div>
-            <div className="text-xs font-medium text-slate-500">{nama}</div>
-          </div>
-        </Link>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <button
-          aria-label="Notifikasi"
-          className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100 hover:text-brand-dark transition-colors"
-        >
-          <Bell size={20} />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-600 ring-2 ring-white" />
+      <form onSubmit={kirim} className="relative max-w-md flex-1">
+        <input
+          value={cari}
+          onChange={(e) => setCari(e.target.value)}
+          placeholder="Cari menu, bahan, atau resep..."
+          aria-label="Cari menu"
+          className="w-full rounded-full border-0 bg-white py-2.5 pl-4 pr-10 text-sm shadow-sm outline-none focus:ring-2 focus:ring-brand/30"
+        />
+        <button type="submit" aria-label="Cari" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+          <Search size={18} />
         </button>
-        <Link
-          href="/profil"
-          aria-label="Profil Saya"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-light text-xl ring-2 ring-brand-mint transition-transform hover:scale-105"
-        >
-          {profile?.avatar || '👩‍🎓'}
+      </form>
+
+      <div className="ml-auto flex items-center gap-3">
+        <button aria-label="Notifikasi" className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm hover:text-brand-dark">
+          <Bell size={19} />
+          <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-accent" />
+        </button>
+        <Link href="/profil" className="flex items-center gap-2.5 border-l border-slate-200 pl-3" aria-label="Profil Saya">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-light text-xl ring-2 ring-brand-mint">
+            {profile?.avatar || '👩‍🎓'}
+          </span>
+          <span className="hidden max-w-[10rem] truncate text-sm font-semibold text-slate-800 sm:block">{profile?.nama}</span>
         </Link>
       </div>
     </header>

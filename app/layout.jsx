@@ -10,7 +10,7 @@ export const metadata = {
   description: 'Platform rekomendasi menu bergizi dan hemat berbasis AI untuk mahasiswa perantau.',
   icons: { icon: '/logo.png' },
 };
-export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#166534' };
+export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#3B54B8' };
 
 export default function RootLayout({ children }) {
   return (
@@ -22,16 +22,14 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <AppProvider>
-          <div className="min-h-screen w-full bg-surface flex flex-col">
-            <Header />
-            {/* Desktop layout: Sidebar in normal flex flow, main content takes all remaining width */}
-            <div className="flex flex-1 w-full">
-              <Sidebar />
-              <main className="flex-1 min-w-0 w-full px-4 py-6 sm:px-6 md:px-8 lg:px-8 xl:px-10 pb-28 lg:pb-12">
+          <div className="flex min-h-screen w-full bg-surface">
+            <Sidebar />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <Header />
+              <main className="w-full flex-1 min-w-0 px-4 py-6 sm:px-6 md:px-8 xl:px-10 pb-28 lg:pb-12">
                 {children}
               </main>
             </div>
-            {/* Asisten AI Interaktif NutriKos */}
             <ChatAI />
             <BottomNav />
           </div>

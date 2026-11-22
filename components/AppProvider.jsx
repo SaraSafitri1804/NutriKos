@@ -7,7 +7,8 @@ const KEY = 'nutrikos-v2';
 const LEGACY_KEY = 'nutrikos-v1';
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
-export const hariIni = () => new Date().toISOString().slice(0, 10);
+export const kunciTanggal = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+export const hariIni = () => kunciTanggal(new Date());
 
 const initial = () => ({
   profile: DEFAULT_PROFILE,
@@ -20,6 +21,7 @@ const initial = () => ({
   shoppingOverrides: {},
   deletedShoppingItems: [],
   customPlanDetails: {},
+  favorit: [],
 });
 
 export default function AppProvider({ children }) {
@@ -44,6 +46,7 @@ export default function AppProvider({ children }) {
           shoppingOverrides: saved.shoppingOverrides || {},
           deletedShoppingItems: saved.deletedShoppingItems || [],
           customPlanDetails: saved.customPlanDetails || {},
+          favorit: saved.favorit || [],
         });
       } else {
         setState((s) => ({ ...s, plan: recommendDaily(s.profile) }));
@@ -80,6 +83,8 @@ export default function AppProvider({ children }) {
       customPlanDetails: {},
     }));
   }, []);
+
+  const toggleFavorit = useCallback((id) => setState((s) => ({ ...s, favorit: s.favorit.includes(id) ? s.favorit.filter((x) => x !== id) : [...s.favorit, id] })), []);
 
   const addExtra = useCallback((id) => setState((s) => (s.extra.includes(id) ? s : { ...s, extra: [...s.extra, id] })), []);
 
@@ -300,6 +305,7 @@ export default function AppProvider({ children }) {
       shoppingOverrides: {},
       deletedShoppingItems: [],
       customPlanDetails: {},
+      favorit: [],
     });
   }, []);
 
@@ -316,6 +322,7 @@ export default function AppProvider({ children }) {
         setPlan,
         generatePlan,
         addExtra,
+        toggleFavorit,
         updateRecipeInPlan,
         removeRecipeFromPlan,
         addRecipeToPlan,

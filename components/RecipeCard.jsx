@@ -1,114 +1,70 @@
+'use client';
 import Link from 'next/link';
-import { Clock, Edit3, Trash2 } from 'lucide-react';
+import { Clock, Edit3, Trash2, Eye, Heart, Check, Flame } from 'lucide-react';
+import { useApp } from './AppProvider';
 import { rupiah, SLOT_LABEL } from '@/lib/data';
 
 export default function RecipeCard({
   recipe,
-  action,
-  aksiLabel = 'Masak Ini Saja',
+  aksiLabel = 'Pilih Menu',
   onAksi,
-  secondary,
+  terpilih = false,
   onEdit,
   onDelete,
   porsi = 1,
 }) {
-  const hargaTotal = Math.round(recipe.harga * porsi);
-  const proteinTotal = Math.round(recipe.protein * porsi);
-  const kaloriTotal = Math.round(recipe.kalori * porsi);
+  const { favorit, toggleFavorit } = useApp();
+  const suka = favorit?.includes(recipe.id);
+  const harga = Math.round(recipe.harga * porsi);
+  const bahanUtama = recipe.bahan.slice(0, 3).map((b) => b.nama).join(', ');
 
   return (
-    <div className="card flex flex-col justify-between border border-slate-100 hover:border-slate-200 transition-all hover:shadow-md">
-      <div>
-        <div className="flex gap-3 sm:gap-4">
-          <Link
-            href={`/menu/${recipe.id}`}
-            className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-brand-light text-4xl sm:h-24 sm:w-24 sm:text-5xl md:h-28 md:w-28 md:rounded-2xl transition-transform hover:scale-105"
-          >
-            {recipe.emoji}
-          </Link>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <span className="text-base font-extrabold text-accent sm:text-lg">
-                  {rupiah(hargaTotal)}
-                </span>
-                {porsi > 1 && (
-                  <span className="ml-1.5 rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
-                    {porsi} Porsi
-                  </span>
-                )}
-              </div>
-              <span className="flex items-center gap-1 text-xs text-slate-500 shrink-0">
-                <Clock size={12} />
-                {recipe.waktu} mnt
-              </span>
-            </div>
-
-            <Link
-              href={`/menu/${recipe.id}`}
-              className="mt-1 block font-bold leading-snug sm:text-base hover:text-brand-dark transition-colors line-clamp-2"
-            >
-              {recipe.nama}
-            </Link>
-
-            <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold sm:text-xs">
-              <span className="rounded-full bg-brand-light px-2 py-0.5 text-brand-dark">
-                {proteinTotal}g Protein
-              </span>
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
-                {kaloriTotal} kcal
-              </span>
-              {action && recipe.slot && (
-                <span className="rounded-full bg-accent-light px-2 py-0.5 text-amber-800">
-                  {SLOT_LABEL[recipe.slot]}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+    <div className="card flex flex-col overflow-hidden !p-0 transition-shadow hover:shadow-md">
+      {/* Kepala kartu */}
+      <div className="relative flex h-40 items-center justify-center bg-gradient-to-br from-brand-light to-brand-mint/60 text-7xl">
+        <Link href={`/menu/${recipe.id}`} aria-label={`Lihat ${recipe.nama}`}>{recipe.emoji}</Link>
+        {recipe.slot && (
+          <span className="absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">{SLOT_LABEL[recipe.slot]}</span>
+        )}
+        <button
+          onClick={() => toggleFavorit(recipe.id)}
+          aria-label={suka ? 'Hapus dari favorit' : 'Simpan ke favorit'}
+          aria-pressed={suka}
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm"
+        >
+          <Heart size={16} className={suka ? 'fill-red-500 text-red-500' : 'text-slate-500'} />
+        </button>
+        <span className="absolute bottom-3 left-3 text-lg font-extrabold text-brand-dark">
+          {rupiah(harga)}{porsi > 1 && <span className="ml-1.5 rounded-md bg-white px-1.5 py-0.5 text-[10px] font-bold text-amber-800">{porsi} porsi</span>}
+        </span>
+        <span className="absolute bottom-3 right-3 flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-sm"><Flame size={12} className="text-accent" /> {Math.round(recipe.kalori * porsi)} kkal</span>
       </div>
 
-      {/* Button Actions */}
-      <div className="mt-3.5 pt-2 border-t border-slate-100 flex items-center gap-2">
-        {onAksi ? (
-          <button
-            onClick={onAksi}
-            className={`btn flex-1 py-2.5 text-xs sm:text-sm ${
-              secondary ? 'btn-soft' : 'btn-primary'
-            }`}
-          >
-            {aksiLabel}
-          </button>
-        ) : (
-          <Link
-            href={`/menu/${recipe.id}`}
-            className="btn btn-soft flex-1 py-2.5 text-xs sm:text-sm text-brand-dark"
-          >
-            {aksiLabel}
-          </Link>
-        )}
+      {/* Isi */}
+      <div className="flex flex-1 flex-col p-4">
+        <Link href={`/menu/${recipe.id}`} className="line-clamp-2 font-extrabold leading-snug hover:text-brand-dark">{recipe.nama}</Link>
+        <p className="mt-1 line-clamp-1 text-xs text-slate-500">Bahan: {bahanUtama}</p>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] font-semibold">
+          <span className="rounded-lg bg-slate-50 px-2 py-1.5"><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-brand-dark" />Protein {Math.round(recipe.protein * porsi)}g</span>
+          <span className="rounded-lg bg-slate-50 px-2 py-1.5"><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-accent" />Karbo {Math.round(recipe.karbo * porsi)}g</span>
+          <span className="rounded-lg bg-slate-50 px-2 py-1.5"><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-success" />Serat {Math.round(recipe.serat * porsi)}g</span>
+        </div>
+        <div className="mt-1 flex items-center gap-1 text-[11px] text-slate-500"><Clock size={11} /> {recipe.waktu} menit</div>
 
-        {onEdit && (
-          <button
-            onClick={onEdit}
-            title="Edit rekomendasi menu ini"
-            aria-label="Edit menu"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
-          >
-            <Edit3 size={16} />
-          </button>
-        )}
-
-        {onDelete && (
-          <button
-            onClick={onDelete}
-            title="Hapus menu dari jadwal"
-            aria-label="Hapus menu"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-          >
-            <Trash2 size={16} />
-          </button>
-        )}
+        <div className="mt-4 flex items-center gap-2">
+          <Link href={`/menu/${recipe.id}`} title="Lihat resep" aria-label="Lihat resep" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-light text-brand-dark hover:bg-brand-mint"><Eye size={16} /></Link>
+          {onEdit && (
+            <button onClick={onEdit} title="Edit menu ini" aria-label="Edit menu" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-light text-brand-dark hover:bg-brand-mint"><Edit3 size={16} /></button>
+          )}
+          {onDelete && (
+            <button onClick={onDelete} title="Hapus dari jadwal" aria-label="Hapus menu" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100"><Trash2 size={16} /></button>
+          )}
+          {terpilih ? (
+            <span className="btn flex-1 cursor-default bg-success-dark py-2.5 text-white"><Check size={16} /> Terpilih</span>
+          ) : (
+            <button onClick={onAksi} className="btn btn-primary flex-1 rounded-full py-2.5"><Check size={16} /> {aksiLabel}</button>
+          )}
+        </div>
       </div>
     </div>
   );

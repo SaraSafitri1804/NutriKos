@@ -3,6 +3,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Wallet,
+  Lightbulb,
   RefreshCw,
   CalendarCheck2,
   Sparkles,
@@ -21,9 +22,9 @@ import { useApp } from '@/components/AppProvider';
 import RecipeCard from '@/components/RecipeCard';
 import { allowedRecipes, recommendWeekly, nutrisiDari } from '@/lib/recommend';
 import { mintaAI } from '@/lib/ai';
-import { getRecipe, rupiah, SLOTS, SLOT_LABEL, RECIPES } from '@/lib/data';
+import { getRecipe, rupiah, SLOTS, SLOT_LABEL, RECIPES, targetGizi } from '@/lib/data';
 
-const FILTERS = ['Semua', 'Rice Cooker', 'Kompor', '< Rp10.000', 'Tinggi Protein', 'Cepat (< 15 mnt)'];
+const FILTERS = ['Semua', 'Sarapan', 'Makan Siang', 'Makan Malam', 'Favorit', 'Rice Cooker', 'Kompor', '< Rp10.000', 'Tinggi Protein', 'Cepat (< 15 mnt)'];
 
 export default function MenuPage() {
   const router = useRouter();
@@ -38,6 +39,7 @@ export default function MenuPage() {
     setRecipePortion,
     customPlanDetails,
     logToday,
+    favorit,
     ai,
     setAi,
     triggerAiModal,
@@ -48,6 +50,8 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('Harian');
   const [filter, setFilter] = useState('Semua');
+  const [q, setQ] = useState('');
+  useEffect(() => { setQ((new URLSearchParams(window.location.search).get('q') || '').toLowerCase()); }, []);
   const [mingguan, setMingguan] = useState(null);
   const [toast, setToast] = useState('');
 
@@ -82,6 +86,10 @@ export default function MenuPage() {
 
   // Filter resep
   const cocokFilter = (r, f) => {
+    if (f === 'Sarapan') return r.slot === 'pagi';
+    if (f === 'Makan Siang') return r.slot === 'siang';
+    if (f === 'Makan Malam') return r.slot === 'malam';
+    if (f === 'Favorit') return favorit.includes(r.id);
     if (f === 'Rice Cooker' || f === 'Kompor') return r.alat.includes(f);
     if (f === '< Rp10.000') return r.harga < 10000;
     if (f === 'Tinggi Protein') return r.protein >= 18;
@@ -95,7 +103,7 @@ export default function MenuPage() {
   const hemat = Math.max(0, Math.round((1 - total / profile.budget) * 100));
 
   // Pilihan resep lain untuk filter di halaman
-  const pilihan = semua.filter((r) => cocokFilter(r, filter) && !plan.includes(r.id));
+  const pilihan = semua.filter((r) => cocokFilter(r, filter) && !plan.includes(r.id) && (!q || r.nama.toLowerCase().includes(q)));
 
   // AI Recommendation
   const tanyaAI = async () => {
@@ -234,42 +242,17 @@ export default function MenuPage() {
             ))}
           </div>
 
-          {/* Budget & Nutrition Summary Banner */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 rounded-2xl bg-gradient-to-r from-brand-mint/40 via-brand-light to-white p-5 border border-brand-mint">
-            <div className="flex items-center gap-3.5">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-dark text-white shadow-xs">
-                <Wallet size={24} />
-              </div>
-              <div>
-                <div className="text-xs font-bold uppercase text-brand-deeper">Target Bujet Hari Ini</div>
-                <div className="text-2xl font-extrabold text-brand-deeper">
-                  {rupiah(profile.budget)}{' '}
-                  <span className="text-xs font-semibold text-slate-500">/ hari</span>
-                </div>
-                <div className="text-xs text-slate-600 font-medium">
-                  Menu terpilih: <b>{rupiah(total)}</b>
-                </div>
-              </div>
+          {/* Target hari ini */}
+          <div className="card flex flex-wrap items-center gap-x-4 gap-y-2 p-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-light text-brand-dark"><Lightbulb size={20} /></span>
+            <div className="text-sm">
+              <b>Target Hari Ini:</b> Bujet <b className="text-brand-dark">{rupiah(profile.budget)}</b>
+              <span className="mx-2 text-slate-300">•</span>Target harian <b>{targetGizi(profile).kalori.toLocaleString('id-ID')} kkal</b>
+              <span className="mx-2 text-slate-300">•</span>Menu terpilih <b>{rupiah(total)}</b> ({nutrisiHarian.kalori} kkal, protein {nutrisiHarian.protein}g)
             </div>
-
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-800">
-                <Flame size={24} />
-              </div>
-              <div>
-                <div className="text-xs font-bold uppercase text-slate-500">Estimasi Nutrisi</div>
-                <div className="text-lg font-extrabold text-slate-800">
-                  {nutrisiHarian.protein}g Protein • {nutrisiHarian.kalori} kcal
-                </div>
-                <div className="text-xs text-slate-500">Serat: {nutrisiHarian.serat}g • Karbo: {nutrisiHarian.karbo}g</div>
-              </div>
-            </div>
-
-            <div className="flex sm:col-span-2 lg:col-span-1 items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-brand-mint/40">
-              <span className="rounded-full bg-brand-dark px-3 py-1.5 text-xs font-bold text-white shadow-xs">
-                {total <= profile.budget ? `Hemat ${hemat}%` : 'Melebihi Bujet'}
-              </span>
-            </div>
+            <span className={`ml-auto rounded-full px-3 py-1 text-xs font-bold ${total <= profile.budget ? 'bg-success-light text-success-dark' : 'bg-red-100 text-red-700'}`}>
+              {total <= profile.budget ? `Hemat ${hemat}%` : 'Melebihi Bujet'}
+            </span>
           </div>
 
           {/* Section: Paket Menu Rekomendasi Terpilih */}
@@ -345,9 +328,8 @@ export default function MenuPage() {
                       <RecipeCard
                         key={r.id}
                         recipe={r}
-                        action
+                        terpilih
                         porsi={porsi}
-                        aksiLabel="Lihat Resep"
                         onEdit={() => bukaModalEdit(r)}
                         onDelete={() => bukaModalHapus(r)}
                       />
@@ -376,9 +358,7 @@ export default function MenuPage() {
                   <RecipeCard
                     key={r.id}
                     recipe={r}
-                    action
-                    aksiLabel="Pilih & Masukkan ke Menu"
-                    secondary
+                    aksiLabel="Pilih Menu"
                     onAksi={() => {
                       addRecipeToPlan(r.id);
                       showToast(`✓ "${r.nama}" ditambahkan ke jadwal harian!`);

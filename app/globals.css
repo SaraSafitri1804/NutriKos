@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 html { -webkit-tap-highlight-color: transparent; }
-body { @apply bg-slate-200 text-slate-900 font-sans; }
+body { @apply bg-surface text-slate-900 font-sans; }
 
 @layer components {
   .card { @apply bg-white rounded-2xl shadow-sm p-4; }

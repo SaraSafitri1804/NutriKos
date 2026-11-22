@@ -1,105 +1,203 @@
 'use client';
-import { Plus, Lightbulb, Check } from 'lucide-react';
-import { useApp, hariIni } from '@/components/AppProvider';
+import Link from 'next/link';
+import { useState } from 'react';
+import { ChevronLeft, ChevronRight, Plus, Flame, Beef, Wheat, Salad, SlidersHorizontal, AlertTriangle, CheckCircle2, Wallet, Info } from 'lucide-react';
+import { useApp, kunciTanggal } from '@/components/AppProvider';
+import Ring from '@/components/Ring';
 import { nutrisiDari } from '@/lib/recommend';
-import { getRecipe, rupiah, TARGET_HARIAN, SLOT_LABEL } from '@/lib/data';
+import { getRecipe, rupiah, targetGizi, SLOT_LABEL } from '@/lib/data';
 
-const HARI = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+const HARI = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+const NOL = { protein: 0, serat: 0, karbo: 0, kalori: 0, biaya: 0 };
 
-function Nutrisi({ judul, nilai, target, warna, sumber }) {
-  const p = Math.round((nilai / target) * 100);
+// Ambang skor mengikuti proposal (Bab 3.6): Cukup >= 80, Perlu Ditingkatkan 50-79, Kurang < 50.
+const kategori = (skor) => (skor >= 80 ? 'Cukup' : skor >= 50 ? 'Perlu Ditingkatkan' : 'Kurang');
+const nada = (p) => (p >= 80 ? 'bg-success-light text-success-dark' : p >= 50 ? 'bg-accent-light text-amber-800' : 'bg-red-100 text-red-700');
+const warnaBar = (p) => (p >= 80 ? 'bg-success' : p >= 50 ? 'bg-brand-dark' : 'bg-accent');
+
+function StatCard({ Icon, judul, nilai, satuan, target, persen }) {
   return (
-    <div className="card">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-        <div><div className="font-extrabold">{judul} <span className={`ml-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${p >= 85 ? 'bg-brand-light text-brand-dark' : 'bg-accent-light text-amber-800'}`}>{p >= 85 ? 'Optimal' : 'Perlu Ditingkatkan'}</span></div><div className="text-xs text-slate-500">Target: {target}g/hari</div></div>
-        <div className="sm:text-right"><div className="text-xl font-extrabold text-brand-dark">{nilai}g</div><div className="text-xs text-slate-500">{p}% tercapai</div></div>
+    <div className="card space-y-2 p-5">
+      <div className="flex items-center justify-between">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-light text-brand-dark"><Icon size={19} /></span>
+        <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${nada(persen)}`}>{persen}% tercapai</span>
       </div>
-      <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-200"><div className={`h-full ${warna}`} style={{ width: `${Math.min(100, p)}%` }} /></div>
-      <div className="mt-2 text-xs text-slate-600"><b>Sumber:</b> {sumber}</div>
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{judul}</div>
+      <div className="text-3xl font-extrabold">{nilai} <span className="text-base font-medium text-slate-500">{satuan}</span></div>
+      <div className="text-xs text-slate-500">Target: {target} {satuan} / hari</div>
+      <div className="h-2 overflow-hidden rounded-full bg-slate-200"><div className={`h-full ${warnaBar(persen)}`} style={{ width: `${Math.min(100, persen)}%` }} /></div>
     </div>
   );
 }
 
 export default function Gizi() {
-  const { plan, log, logToday, customPlanDetails, ready } = useApp();
+  const { profile, plan, log, logToday, customPlanDetails, ready } = useApp();
+  const [offset, setOffset] = useState(0); // 0 = minggu ini, -1 = minggu lalu, dst.
   if (!ready) return null;
 
-  const n = nutrisiDari(plan, customPlanDetails);
-  const skor = Math.round(((Math.min(1, n.protein / TARGET_HARIAN.protein) + Math.min(1, n.serat / TARGET_HARIAN.serat) + Math.min(1, n.karbo / TARGET_HARIAN.karbo)) / 3) * 100);
-  const label = skor >= 85 ? 'Sangat Baik & Seimbang' : skor >= 70 ? 'Cukup Baik & Seimbang' : 'Perlu Ditingkatkan';
-  const hari = hariIni();
-  const terendah = [['protein', n.protein / TARGET_HARIAN.protein], ['serat', n.serat / TARGET_HARIAN.serat], ['karbo', n.karbo / TARGET_HARIAN.karbo]].sort((a, b) => a[1] - b[1])[0][0];
-  const tips = { protein: 'Tambah lauk seperti telur, tahu, atau tempe agar protein harianmu terpenuhi.', serat: 'Kamu masih kurang serat. Coba tambah tumis kangkung atau lalapan seharga sekitar Rp2.000 dari warteg.', karbo: 'Karbohidratmu masih rendah. Tambahkan nasi atau umbi-umbian secukupnya agar tidak lemas.' }[terendah];
+  const T = targetGizi(profile);
+  const sekarang = new Date();
+  const kunciHariIni = kunciTanggal(sekarang);
+  const idxHariIni = (sekarang.getDay() + 6) % 7;
+  const senin = new Date(sekarang.getTime() + (-idxHariIni + offset * 7) * 86400000);
 
-  const minggu = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (6 - i));
-    const key = d.toISOString().slice(0, 10);
-    return { key, nama: HARI[d.getDay()], tgl: d.getDate(), tercatat: !!log[key], hariIni: key === hari };
+  // Satu minggu (Senin-Minggu). Hari ini memakai menu aktif; hari lain memakai riwayat catatan.
+  const hari = HARI.map((nama, i) => {
+    const d = new Date(senin.getTime() + i * 86400000);
+    const key = kunciTanggal(d);
+    const adalahHariIni = key === kunciHariIni;
+    const ids = adalahHariIni ? plan : log?.[key] || [];
+    const n = ids.length ? nutrisiDari(ids, adalahHariIni ? customPlanDetails : {}) : NOL;
+    return { key, nama, tgl: d.getDate(), ada: ids.length > 0, n, hariIni: adalahHariIni, tercatat: !!log?.[key] };
   });
-  const tercatatHariIni = log[hari];
+  const aktif = hari.filter((h) => h.ada);
+  const jml = aktif.length;
+  const rata = (k) => (jml ? Math.round(aktif.reduce((s, h) => s + h.n[k], 0) / jml) : 0);
+  const avg = { kalori: rata('kalori'), protein: rata('protein'), karbo: rata('karbo'), serat: rata('serat'), biaya: rata('biaya') };
+  const pct = (v, t) => Math.round((v / t) * 100);
+  const p = { kalori: pct(avg.kalori, T.kalori), protein: pct(avg.protein, T.protein), karbo: pct(avg.karbo, T.karbo), serat: pct(avg.serat, T.serat) };
+
+  // Skor mingguan = rata-rata skor protein, karbohidrat, sayur (serat sebagai pendekatan), masing-masing maks 100.
+  const skor = jml ? Math.round((Math.min(100, p.protein) + Math.min(100, p.karbo) + Math.min(100, p.serat)) / 3) : 0;
+  const status = kategori(skor);
+
+  const totalKalori = aktif.reduce((s, h) => s + h.n.kalori, 0);
+  const maksBar = Math.max(T.kalori * 1.1, ...hari.map((h) => h.n.kalori));
+  const garisTarget = (T.kalori / maksBar) * 100;
+  const hariTerdekat = jml ? [...aktif].sort((a, b) => Math.abs(a.n.kalori - T.kalori) - Math.abs(b.n.kalori - T.kalori))[0] : null;
+  const hariTerendah = jml > 1 ? [...aktif].sort((a, b) => a.n.kalori - b.n.kalori)[0] : null;
+
+  const fmt = (d) => d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+  const minggu = new Date(senin.getTime() + 6 * 86400000);
+  const rentang = `${fmt(senin)} – ${fmt(minggu)} ${minggu.getFullYear()}`;
+
+  const kurangSerat = p.serat < 80;
+  const kurangProtein = p.protein < 80;
+  const tercatatHariIni = !!log?.[kunciHariIni];
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div><h1 className="text-2xl font-extrabold sm:text-3xl lg:text-4xl">Gizi Mingguan</h1><p className="text-slate-600 sm:text-lg">Pantau nutrisi seimbang biar tetap fit & hemat bujet</p></div>
-
-      {/* Score card */}
-      <section className="card">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div><div className="text-xs font-bold uppercase text-slate-500">Skor kebugaran kos (hari ini)</div><div className="text-5xl font-extrabold text-brand-dark">{skor}<span className="text-xl text-slate-500"> /100</span></div></div>
-          <span className="shrink-0 self-start rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-brand-dark">{label}</span>
+    <div className="space-y-6">
+      {/* Judul */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-extrabold sm:text-3xl">Gizi Mingguan</h1>
+          <p className="text-slate-600">Pantau kebutuhan kalori dan keseimbangan nutrisimu selama seminggu.</p>
         </div>
-        <p className="mt-2 text-xs text-slate-500">Catatan: skor ini panduan umum gaya hidup anak kos dan bukan pengganti saran atau diagnosis medis.</p>
-      </section>
-
-      {/* Nutrisi cards */}
-      <h2 className="text-xl font-extrabold lg:text-2xl">Target Nutrisi Harian</h2>
-      <div className="grid gap-3 md:grid-cols-3">
-        <Nutrisi judul="Protein" nilai={n.protein} target={TARGET_HARIAN.protein} warna="bg-brand-dark" sumber="Telur, tahu, tempe, ayam, ikan teri" />
-        <Nutrisi judul="Sayur & Serat" nilai={n.serat} target={TARGET_HARIAN.serat} warna="bg-accent" sumber="Bayam, kangkung, kol, wortel, tauge" />
-        <Nutrisi judul="Karbohidrat" nilai={n.karbo} target={TARGET_HARIAN.karbo} warna="bg-slate-500" sumber="Nasi, oat, roti, jagung, mi" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 rounded-full bg-white px-2 py-1.5 text-sm font-bold shadow-sm">
+            <button aria-label="Minggu sebelumnya" onClick={() => setOffset(offset - 1)} className="rounded-full p-1 hover:bg-slate-100"><ChevronLeft size={16} /></button>
+            <span className="px-1">{rentang}</span>
+            <button aria-label="Minggu berikutnya" disabled={offset >= 0} onClick={() => setOffset(offset + 1)} className="rounded-full p-1 hover:bg-slate-100 disabled:opacity-30"><ChevronRight size={16} /></button>
+          </div>
+          <Link href="/profil-kos" className="btn btn-primary"><SlidersHorizontal size={16} /> Atur Target Gizi</Link>
+        </div>
       </div>
 
-      {/* Weekly log & today's menu: side-by-side on desktop */}
-      <div className="lg:grid lg:grid-cols-2 lg:gap-6">
-        {/* 7-day calendar */}
-        <section className="card">
-          <h2 className="mb-3 font-extrabold">Catatan 7 Hari</h2>
-          <div className="grid grid-cols-7 gap-1.5 text-center text-xs">
-            {minggu.map((m) => (
-              <div key={m.key} className={`rounded-xl py-2 ${m.hariIni ? 'bg-brand-dark text-white' : 'bg-slate-100'}`}>
-                <div className="font-semibold">{m.nama}</div><div className="text-base font-extrabold">{m.tgl}</div>
-                <div className="mt-1 flex justify-center">{m.tercatat ? <Check size={14} /> : <span className="opacity-40">-</span>}</div>
+      {jml === 0 && (
+        <div className="card text-sm text-slate-600">Belum ada menu yang tercatat di minggu ini. Pilih menu di <Link href="/menu" className="font-bold text-brand-dark underline">Rekomendasi Menu</Link>, lalu tekan "Catat Makan Hari Ini".</div>
+      )}
+
+      {/* Statistik */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard Icon={Flame} judul="Rata-rata kalori" nilai={avg.kalori.toLocaleString('id-ID')} satuan="kkal" target={T.kalori.toLocaleString('id-ID')} persen={p.kalori} />
+        <StatCard Icon={Beef} judul="Protein harian" nilai={avg.protein} satuan="g" target={T.protein} persen={p.protein} />
+        <StatCard Icon={Wheat} judul="Karbohidrat" nilai={avg.karbo} satuan="g" target={T.karbo} persen={p.karbo} />
+        <StatCard Icon={Salad} judul="Sayur & serat" nilai={avg.serat} satuan="g" target={T.serat} persen={p.serat} />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        {/* Tren kalori */}
+        <section className="card p-5 xl:col-span-2">
+          <div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-extrabold">Tren Kalori Harian</h2><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Senin – Minggu</span></div>
+          <div className="text-3xl font-extrabold">{totalKalori.toLocaleString('id-ID')} <span className="text-lg font-medium text-slate-500">kkal</span></div>
+          <p className="text-xs text-slate-500">Rata-rata {avg.kalori.toLocaleString('id-ID')} kkal/hari dari target {T.kalori.toLocaleString('id-ID')} kkal/hari ({jml} hari tercatat).</p>
+          <div className="mt-5 h-52 rounded-2xl bg-slate-50 px-3 pb-8 pt-5">
+            <div className="relative flex h-full gap-3">
+              <div className="pointer-events-none absolute inset-x-0 border-t border-dashed border-slate-400" style={{ bottom: `${garisTarget}%` }}>
+                <span className="absolute -top-4 right-0 text-[10px] text-slate-500">Target {T.kalori.toLocaleString('id-ID')} kkal</span>
               </div>
-            ))}
+              {hari.map((h) => {
+                const tinggi = h.ada ? (h.n.kalori / maksBar) * 100 : 0;
+                return (
+                  <div key={h.key} className="relative h-full flex-1">
+                    <div className={`absolute inset-x-0 bottom-0 rounded-t-lg ${h.ada ? (h.hariIni ? 'bg-brand-dark' : 'bg-brand-mint') : 'bg-slate-200'}`} style={{ height: h.ada ? `${tinggi}%` : '4px' }} title={h.ada ? `${h.n.kalori} kkal` : 'Belum ada data'} />
+                    {h.ada && <span className="absolute inset-x-0 text-center text-[10px] font-bold text-slate-600" style={{ bottom: `calc(${tinggi}% + 2px)` }}>{h.n.kalori.toLocaleString('id-ID')}</span>}
+                    <span className={`absolute inset-x-0 -bottom-6 text-center text-[11px] ${h.hariIni ? 'font-extrabold text-brand-dark' : 'text-slate-500'}`}>{h.nama}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="mt-4 space-y-1.5 rounded-xl bg-slate-50 p-3 text-xs">
+            {hariTerdekat && <div className="flex items-center gap-2"><CheckCircle2 size={15} className="text-success" /> <span><b>Paling mendekati target:</b> {hariTerdekat.nama} ({hariTerdekat.n.kalori.toLocaleString('id-ID')} kkal)</span></div>}
+            {hariTerendah && <div className="flex items-center gap-2"><AlertTriangle size={15} className="text-accent" /> <span><b>Asupan terendah:</b> {hariTerendah.nama} ({hariTerendah.n.kalori.toLocaleString('id-ID')} kkal)</span></div>}
+            {!hariTerdekat && <div className="text-slate-500">Data akan muncul setelah ada menu yang dijadwalkan.</div>}
           </div>
         </section>
 
-        {/* Today's menu */}
-        <section className="card mt-4 lg:mt-0">
-          <div className="mb-2 flex justify-between text-sm font-bold"><span>Menu Hari Ini</span><span className={tercatatHariIni ? 'text-brand-dark' : 'text-slate-400'}>{tercatatHariIni ? 'Tercatat' : 'Belum dicatat'}</span></div>
-          <ul className="space-y-1.5 text-sm">
-            {plan.map((id) => getRecipe(id)).filter(Boolean).map((r) => {
-              const porsi = customPlanDetails?.[r.id]?.porsi || 1;
-              return (
-                <li key={r.id} className="flex justify-between rounded-lg bg-slate-50 px-3 py-2">
-                  <span>
-                    <span className="text-xs text-slate-500">{SLOT_LABEL[r.slot]} {porsi > 1 ? `(${porsi} porsi)` : ''}</span>
-                    <br />{r.emoji} {r.nama}
-                  </span>
-                  <span className="text-slate-500 font-semibold">{rupiah(r.harga * porsi)}</span>
-                </li>
-              );
-            })}
-          </ul>
-          <button onClick={logToday} className="btn btn-primary mt-3 w-full"><Plus size={18} /> Catat Makan Hari Ini</button>
+        {/* Pemenuhan AKG */}
+        <section className="card flex flex-col p-5">
+          <h2 className="text-lg font-extrabold">Pemenuhan Gizi (AKG)</h2>
+          <p className="mb-4 text-xs text-slate-500">AKG 2019, {profile.jenisKelamin || 'Perempuan'} usia 19–29 tahun. Rata-rata per hari.</p>
+          <div className="space-y-4">
+            <Ring horizontal persen={p.kalori} label="Kalori" detail={`${avg.kalori} / ${T.kalori} kkal`} />
+            <Ring horizontal persen={p.protein} label="Protein" detail={`${avg.protein}g / ${T.protein}g`} />
+            <Ring horizontal persen={p.karbo} label="Karbohidrat" detail={`${avg.karbo}g / ${T.karbo}g`} />
+            <Ring horizontal persen={p.serat} label="Serat" detail={`${avg.serat}g / ${T.serat}g`} />
+          </div>
+          <div className={`mt-5 rounded-2xl p-4 ${nada(skor)}`}>
+            <div className="text-xs opacity-80">Status Gizi Minggu Ini (skor {skor}/100)</div>
+            <div className="text-lg font-extrabold">{jml ? status : 'Belum ada data'}</div>
+          </div>
         </section>
       </div>
 
-      {/* Tips and cost ratio: side-by-side on desktop */}
-      <div className="lg:grid lg:grid-cols-2 lg:gap-6">
-        <section className="card flex gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-light text-accent"><Lightbulb /></div><div><div className="font-extrabold">Tips Sehat Anak Kos</div><p className="text-sm text-slate-600">{tips}</p></div></section>
-        <section className="card mt-4 lg:mt-0"><div className="text-xs font-bold uppercase text-slate-500">Rasio nutrisi per rupiah</div><div className="text-2xl font-extrabold">{rupiah(n.biaya)} <span className="text-sm font-medium text-slate-500">/ hari</span></div><p className="text-sm text-slate-600">Untuk {skor}% nutrisi harian terpenuhi.</p></section>
-      </div>
+      {/* Catatan & rekomendasi */}
+      <section className="card p-5">
+        <h2 className="text-lg font-extrabold">Catatan & Rekomendasi Nutrisi</h2>
+        <p className="mb-4 text-xs text-slate-500">Disesuaikan dengan anggaran dan alat masak di Profil Kos.</p>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className={`rounded-2xl p-4 ${kurangSerat ? 'bg-accent-light' : 'bg-success-light'}`}>
+            <div className="font-extrabold">{kurangSerat ? `Tingkatkan Asupan Serat (+${Math.max(0, 100 - p.serat)}%)` : 'Asupan Serat Terjaga'}</div>
+            <p className="mt-2 text-sm text-slate-700">
+              {jml ? `Rata-rata serat ${avg.serat}g dari anjuran ${T.serat}g. ` : ''}
+              {kurangSerat ? 'Tambahkan tumis kangkung, lalapan, atau buah potong pada menu makan siang dan malam.' : 'Pertahankan sayur dan buah di setiap waktu makan.'}
+            </p>
+            {kurangSerat && <Link href="/menu" className="mt-3 inline-block text-xs font-bold text-brand-dark">+ Lihat Rekomendasi Menu</Link>}
+          </div>
+          <div className={`rounded-2xl p-4 ${kurangProtein ? 'bg-accent-light' : 'bg-success-light'}`}>
+            <div className="font-extrabold">{kurangProtein ? 'Protein Perlu Ditambah' : 'Protein Terjaga'}</div>
+            <p className="mt-2 text-sm text-slate-700">
+              {jml ? `Rata-rata protein ${avg.protein}g dari anjuran ${T.protein}g (${p.protein}%). ` : ''}
+              {kurangProtein ? 'Tambah lauk murah seperti telur, tahu, atau tempe.' : 'Kombinasi lauk hemat di menumu sudah mencukupi.'}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-brand-light p-4">
+            <div className="flex items-center gap-2 font-extrabold"><Wallet size={16} /> Pengeluaran Makan</div>
+            <p className="mt-2 text-sm text-slate-700">
+              {jml ? `Rata-rata ${rupiah(avg.biaya)}/hari dari bujet ${rupiah(profile.budget)}/hari. ${avg.biaya <= profile.budget ? 'Masih dalam bujet.' : 'Sedikit melebihi bujet.'}` : 'Belum ada data pengeluaran minggu ini.'}
+            </p>
+          </div>
+        </div>
+        <p className="mt-4 flex items-start gap-2 text-xs text-slate-500"><Info size={14} className="mt-0.5 shrink-0" /> Skor hanya menghitung menu yang dijadwalkan di NutriKos, tidak termasuk jajan di luar aplikasi. Nilai serat dipakai sebagai pendekatan asupan sayur. Ini panduan umum, bukan diagnosis atau pengganti saran ahli gizi.</p>
+      </section>
+
+      {/* Menu hari ini + catat */}
+      <section className="card p-5">
+        <div className="mb-3 flex items-center justify-between text-sm font-bold"><span className="text-lg font-extrabold">Menu Hari Ini</span><span className={tercatatHariIni ? 'text-success-dark' : 'text-slate-400'}>{tercatatHariIni ? 'Tercatat' : 'Belum dicatat'}</span></div>
+        <ul className="grid gap-2 text-sm md:grid-cols-3">
+          {plan.map((id) => getRecipe(id)).filter(Boolean).map((r) => {
+            const porsi = customPlanDetails?.[r.id]?.porsi || 1;
+            return (
+              <li key={r.id} className="flex justify-between rounded-xl bg-slate-50 px-3 py-2">
+                <span><span className="text-xs text-slate-500">{SLOT_LABEL[r.slot]} {porsi > 1 ? `(${porsi} porsi)` : ''}</span><br />{r.emoji} {r.nama}</span>
+                <span className="font-semibold text-slate-500">{rupiah(r.harga * porsi)}</span>
+              </li>
+            );
+          })}
+        </ul>
+        <button onClick={logToday} className="btn btn-primary mt-4 w-full sm:w-auto"><Plus size={18} /> Catat Makan Hari Ini</button>
+      </section>
     </div>
   );
 }
