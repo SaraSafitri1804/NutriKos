@@ -5,19 +5,22 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 import { getRecipe, SLOTS } from '@/lib/data';
 import { laporSync } from '@/lib/sync-status';
 
-// Sinkronisasi menu terjadwal (jadwal_makan), favorit, dan riwayat menu (riwayat_menu) - langkah 7b.
+// Sinkronisasi menu terjadwal (jadwal_makan), favorit, riwayat menu (riwayat_menu) - langkah 7b,
+// dan kondisi daftar belanja (daftar_belanja) - langkah 7c.
 // Dimuat setelah profil akun selesai dimuat oleh SesiSync (ditandai profile.akunId).
 
 const urutSlot = (id) => { const i = SLOTS.indexOf(getRecipe(id)?.slot); return i === -1 ? 9 : i; };
 const kunciJadwal = (plan, rinci) => JSON.stringify([plan, plan.map((id) => rinci?.[id] || null)]);
 const kunciHari = (ids) => JSON.stringify([...new Set(ids)].sort());
+const kunciBelanja = (b) => JSON.stringify([b.extra, b.checked, b.customShoppingItems, b.shoppingOverrides, b.deletedShoppingItems]);
 const hariLalu = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
 
 export default function SinkronData() {
-  const { ready, profile, plan, customPlanDetails, favorit, log, hydrate } = useApp();
+  const { ready, profile, plan, customPlanDetails, favorit, log, extra, checked, customShoppingItems, shoppingOverrides, deletedShoppingItems, hydrate } = useApp();
   const akunId = profile?.akunId;
   const terbaru = useRef({});
-  terbaru.current = { plan, customPlanDetails, favorit, log };
+  const belanja = { extra, checked, customShoppingItems, shoppingOverrides, deletedShoppingItems };
+  terbaru.current = { plan, customPlanDetails, favorit, log, ...belanja };
   const muatUntuk = useRef(null);   // akun yang datanya sudah dimuat
   const sedangMuat = useRef(false);
   const dasar = useRef(null);       // kondisi terakhir yang sudah sama dengan database
@@ -31,12 +34,13 @@ export default function SinkronData() {
     (async () => {
       try {
         const sb = supabaseBrowser();
-        const [jd, fv, rw] = await Promise.all([
+        const [jd, fv, rw, bl] = await Promise.all([
           sb.from('jadwal_makan').select('resep_id,waktu_makan,rincian').eq('pengguna_id', akunId).eq('tanggal', hariIni()),
           sb.from('favorit').select('resep_id').eq('pengguna_id', akunId).order('tanggal', { ascending: true }),
           sb.from('riwayat_menu').select('tanggal,resep_id').eq('pengguna_id', akunId).gte('tanggal', hariLalu(120)),
+          sb.from('daftar_belanja').select('kondisi').eq('pengguna_id', akunId).maybeSingle(),
         ]);
-        if (jd.error || fv.error || rw.error) throw new Error('gagal memuat');
+        if (jd.error || fv.error || rw.error || bl.error) throw new Error('gagal memuat');
 
         const lokal = terbaru.current;
         const patch = {};
@@ -55,7 +59,21 @@ export default function SinkronData() {
         patch.favorit = favDasar;
         patch.log = logDasar;
 
-        dasar.current = { jadwal: kunciJadwal(planDasar, rinciDasar), favorit: favDasar, log: logDasar };
+        // Daftar belanja: bila sudah ada di database, database menang; bila belum, pakai kondisi lokal tanpa menyimpannya.
+        let belanjaDasar = {
+          extra: lokal.extra, checked: lokal.checked, customShoppingItems: lokal.customShoppingItems,
+          shoppingOverrides: lokal.shoppingOverrides, deletedShoppingItems: lokal.deletedShoppingItems,
+        };
+        if (bl.data?.kondisi && Object.keys(bl.data.kondisi).length) {
+          const k = bl.data.kondisi;
+          belanjaDasar = {
+            extra: k.extra || [], checked: k.checked || {}, customShoppingItems: k.customShoppingItems || [],
+            shoppingOverrides: k.shoppingOverrides || {}, deletedShoppingItems: k.deletedShoppingItems || [],
+          };
+          Object.assign(patch, belanjaDasar);
+        }
+
+        dasar.current = { jadwal: kunciJadwal(planDasar, rinciDasar), favorit: favDasar, log: logDasar, belanja: kunciBelanja(belanjaDasar) };
         muatUntuk.current = akunId;
         hydrate(patch);
       } catch (e) {
@@ -75,7 +93,9 @@ export default function SinkronData() {
     const favTambah = favorit.filter((x) => !d.favorit.includes(x));
     const favHapus = d.favorit.filter((x) => !favorit.includes(x));
     const hariBerubah = [...new Set([...Object.keys(log), ...Object.keys(d.log)])].filter((t) => kunciHari(log[t] || []) !== kunciHari(d.log[t] || []));
-    if (!jadwalBerubah && !favTambah.length && !favHapus.length && !hariBerubah.length) return;
+    const belanjaKini = kunciBelanja(belanja);
+    const belanjaBerubah = belanjaKini !== d.belanja;
+    if (!jadwalBerubah && !favTambah.length && !favHapus.length && !hariBerubah.length && !belanjaBerubah) return;
 
     const t = setTimeout(async () => {
       laporSync('menyimpan');
@@ -98,7 +118,10 @@ export default function SinkronData() {
           const ids = [...new Set(log[tgl] || [])];
           if (ids.length) galat(await sb.from('riwayat_menu').insert(ids.map((id) => ({ pengguna_id: akunId, resep_id: id, tanggal: tgl }))));
         }
-        dasar.current = { jadwal: jadwalKini, favorit: [...favorit], log: JSON.parse(JSON.stringify(log)) };
+        if (belanjaBerubah) {
+          galat(await sb.from('daftar_belanja').upsert({ pengguna_id: akunId, kondisi: belanja, diperbarui_pada: new Date().toISOString() }, { onConflict: 'pengguna_id' }));
+        }
+        dasar.current = { jadwal: jadwalKini, favorit: [...favorit], log: JSON.parse(JSON.stringify(log)), belanja: belanjaKini };
         laporSync('tersimpan');
       } catch (e) {
         console.warn('NutriKos: gagal menyimpan menu/favorit.', e?.message);
@@ -106,7 +129,7 @@ export default function SinkronData() {
       }
     }, 800);
     return () => clearTimeout(t);
-  }, [akunId, plan, customPlanDetails, favorit, log]);
+  }, [akunId, plan, customPlanDetails, favorit, log, extra, checked, customShoppingItems, shoppingOverrides, deletedShoppingItems]);
 
   return null;
 }

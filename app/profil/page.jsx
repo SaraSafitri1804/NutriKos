@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Save, Check, Heart, CalendarCheck2, Wallet, X, Plus } from 'lucide-react';
 import { useApp } from '@/components/AppProvider';
@@ -8,8 +7,7 @@ import Ring from '@/components/Ring';
 import { AVATARS, PANTANGAN_OPTIONS, rupiah, targetGizi } from '@/lib/data';
 
 export default function ProfilSaya() {
-  const router = useRouter();
-  const { profile, setProfile, favorit, log, reset, ready } = useApp();
+  const { profile, setProfile, favorit, log, ready } = useApp();
   const [form, setForm] = useState(null);
   const [toast, setToast] = useState(false);
 
@@ -31,7 +29,6 @@ export default function ProfilSaya() {
     setToast(true);
     setTimeout(() => setToast(false), 2500);
   };
-  const resetData = () => { if (confirm('Reset catatan belanja di perangkat ini? Profil, menu, favorit, dan riwayat akunmu tetap tersimpan.')) { reset(); router.push('/'); } };
   const sisaPantangan = PANTANGAN_OPTIONS.filter((p) => !profile.pantangan.includes(p));
 
   return (
@@ -39,7 +36,6 @@ export default function ProfilSaya() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div><h1 className="text-2xl font-extrabold sm:text-3xl">Profil Saya</h1><p className="text-slate-600">Kelola data pribadi dan preferensi makananmu.</p></div>
         <div className="flex items-center gap-3">
-          <button onClick={resetData} className="text-sm font-semibold text-red-600">Reset Data</button>
           <button onClick={simpan} className="btn btn-primary rounded-full"><Save size={16} /> Simpan Perubahan</button>
         </div>
       </div>
