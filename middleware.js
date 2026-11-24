@@ -2,9 +2,9 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
 // Halaman akun yang boleh dibuka tanpa login.
-const RUTE_AKUN = ['/login', '/register', '/lupa-sandi', '/reset-sandi'];
+const RUTE_AKUN = ['/mulai', '/login', '/register', '/lupa-sandi', '/reset-sandi'];
 // Halaman yang hanya untuk tamu: pengguna yang sudah login dialihkan ke Beranda.
-const HANYA_TAMU = ['/login', '/register'];
+const HANYA_TAMU = ['/mulai', '/login', '/register'];
 
 export async function middleware(request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -40,7 +40,8 @@ export async function middleware(request) {
   }
   if (!user && !RUTE_AKUN.includes(path)) {
     const tujuan = request.nextUrl.clone();
-    tujuan.pathname = '/login';
+    // Pengunjung baru di halaman utama melihat halaman perkenalan; halaman lain meminta login.
+    tujuan.pathname = path === '/' ? '/mulai' : '/login';
     tujuan.search = path === '/' ? '' : `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
     return alihkan(tujuan);
   }

@@ -7,8 +7,8 @@ import ChatAI from './ChatAI';
 import SesiSync from './SesiSync';
 import SinkronData from './SinkronData';
 
-// Halaman akun (login, daftar, dst.) tampil tanpa sidebar, header, dan chatbot.
-export const RUTE_AKUN = ['/login', '/register', '/lupa-sandi', '/reset-sandi'];
+// Halaman perkenalan dan halaman akun (login, daftar, dst.) tampil tanpa sidebar, header, dan chatbot.
+export const RUTE_AKUN = ['/mulai', '/login', '/register', '/lupa-sandi', '/reset-sandi'];
 
 export default function Shell({ children }) {
   const path = usePathname();

@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useState } from 'react';
 import { Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -6,11 +7,11 @@ export function AuthCard({ badge, judul, deskripsi, children, lebar = 'max-w-md'
   return (
     <div className="flex min-h-screen flex-col items-center bg-surface px-4 py-10">
       <div className="mb-6 flex flex-col items-center text-center">
-        <div className="flex items-center gap-3">
+        <Link href="/mulai" className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="Logo NutriKos" className="h-11 w-11 rounded-xl bg-white object-contain p-1 shadow-sm" />
           <span className="text-2xl font-extrabold">NutriKos</span>
-        </div>
+        </Link>
         <p className="mt-2 text-xs text-slate-500">Nutrisi Cerdas &amp; Anggaran Sehat Mahasiswa Kos</p>
       </div>
       <div className={`w-full ${lebar} rounded-3xl bg-white p-6 shadow-lg sm:p-8`}>
