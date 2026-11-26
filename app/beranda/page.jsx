@@ -89,9 +89,9 @@ export default function Beranda() {
               <p className="mt-2 text-slate-600">
                 Sisa anggaran makan hari ini <b>{rupiah(sisa)}</b>. Kamu punya {resep.length} menu terjadwal. Yuk masak hemat &amp; bernutrisi!
               </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button className="btn btn-primary disabled:opacity-70" disabled={loading} onClick={rekomendasi}><Sparkles size={18} /> {loading ? 'Menyusun menu...' : 'Rekomendasikan Menu'}</button>
-                <Link href="/bahan-sisa" className="btn btn-soft"><Refrigerator size={18} /> Cek Bahan Sisa</Link>
+              <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                <button className="btn btn-primary w-full sm:w-auto disabled:opacity-70" disabled={loading} onClick={rekomendasi}><Sparkles size={18} /> {loading ? 'Menyusun menu...' : 'Rekomendasikan Menu'}</button>
+                <Link href="/bahan-sisa" className="btn btn-soft w-full sm:w-auto text-center"><Refrigerator size={18} /> Cek Bahan Sisa</Link>
               </div>
             </div>
             <div className="hidden h-36 w-36 shrink-0 items-center justify-center rounded-3xl bg-brand-light text-7xl sm:flex">🍳</div>
@@ -107,20 +107,20 @@ export default function Beranda() {
               <div className="text-3xl font-extrabold">{rupiah(totalMinggu)}</div>
               <div className="text-xs text-slate-500">dari target {rupiah(profile.budget * 7)}</div>
             </div>
-            <div className="rounded-2xl bg-slate-50 p-3">
-              <div className="flex h-36 items-end gap-2">
+            <div className="rounded-2xl bg-slate-50 p-3 overflow-hidden">
+              <div className="flex h-36 items-end gap-1 sm:gap-2">
                 {minggu.map((h) => (
-                  <div key={h.label} className="flex flex-1 flex-col items-center gap-1">
-                    <span className="text-[10px] text-slate-500">{h.biaya ? Math.round(h.biaya / 1000) + 'k' : ''}</span>
+                  <div key={h.label} className="flex flex-1 min-w-0 flex-col items-center gap-1">
+                    <span className="text-[10px] text-slate-500 truncate">{h.biaya ? Math.round(h.biaya / 1000) + 'k' : ''}</span>
                     <div className="flex h-24 w-full flex-col justify-end overflow-hidden rounded-md bg-brand-light" title={rupiah(h.biaya)}>
                       <div className="w-full bg-brand-dark" style={{ height: `${(h.biaya / maks) * 100}%` }} />
                     </div>
-                    <span className={`text-[11px] ${h.hariIni ? 'font-extrabold text-brand-dark' : 'text-slate-500'}`}>{h.label}</span>
+                    <span className={`text-[10px] sm:text-[11px] truncate ${h.hariIni ? 'font-extrabold text-brand-dark' : 'text-slate-500'}`}>{h.label}</span>
                   </div>
                 ))}
               </div>
-              <div className="mt-3 flex items-center justify-between text-xs">
-                <span className="flex items-center gap-3 text-slate-600">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span className="flex items-center gap-2 sm:gap-3 text-slate-600">
                   <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-brand-dark" /> Terpakai</span>
                   <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-brand-light ring-1 ring-brand-mint" /> Sisa kuota</span>
                 </span>
@@ -189,13 +189,13 @@ export default function Beranda() {
               const aktif = i === idxBerikut;
               const lewat = idxBerikut === -1 ? jamSekarang != null : i < idxBerikut;
               return (
-                <li key={r.id} className="flex items-center gap-3">
-                  <span className={`w-11 shrink-0 text-xs font-bold ${aktif ? 'text-brand-dark' : 'text-slate-500'}`}>{LABEL_JAM[r.slot]}</span>
-                  <Link href={`/menu/${r.id}`} className={`flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-3 ${aktif ? 'bg-brand-dark text-white shadow-md' : lewat ? 'bg-slate-50 text-slate-400' : 'bg-slate-50'}`}>
-                    <span className="text-2xl">{r.emoji}</span>
+                <li key={r.id} className="flex items-center gap-2 sm:gap-3">
+                  <span className={`w-10 sm:w-11 shrink-0 text-xs font-bold ${aktif ? 'text-brand-dark' : 'text-slate-500'}`}>{LABEL_JAM[r.slot]}</span>
+                  <Link href={`/menu/${r.id}`} className={`flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3 rounded-2xl p-3 transition-colors ${aktif ? 'bg-brand-dark text-white shadow-md' : lewat ? 'bg-slate-50 text-slate-400 hover:bg-slate-100' : 'bg-slate-50 hover:bg-slate-100'}`}>
+                    <span className="text-2xl shrink-0">{r.emoji}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-bold">{SLOT_LABEL[r.slot]}: {r.nama}</span>
-                      <span className={`flex items-center gap-1 text-xs ${aktif ? 'text-white/80' : 'text-slate-500'}`}><Clock size={11} /> {r.waktu} mnt · {r.kalori} kkal · {rupiah(r.harga)}</span>
+                      <span className={`block truncate text-xs ${aktif ? 'text-white/80' : 'text-slate-500'}`}><Clock size={11} className="inline mr-1" />{r.waktu} mnt · {r.kalori} kkal · {rupiah(r.harga)}</span>
                     </span>
                   </Link>
                 </li>

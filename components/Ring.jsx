@@ -22,10 +22,10 @@ export default function Ring({ persen, label, detail, size = 'h-20 w-20', horizo
     );
   }
   return (
-    <div className="flex flex-col items-center text-center">
+    <div className="flex flex-col items-center text-center px-1 min-w-0">
       {lingkaran}
-      <div className="mt-1 text-sm font-bold">{label}</div>
-      <div className="text-xs text-slate-500">{detail}</div>
+      <div className="mt-1 text-xs sm:text-sm font-bold truncate w-full">{label}</div>
+      <div className="text-[11px] sm:text-xs text-slate-500 truncate w-full">{detail}</div>
     </div>
   );
 }
