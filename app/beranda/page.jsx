@@ -76,17 +76,17 @@ export default function Beranda() {
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-3">
-      <div className="space-y-6 xl:col-span-2">
+    <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3 w-full min-w-0 max-w-full">
+      <div className="space-y-4 sm:space-y-6 xl:col-span-2 min-w-0 max-w-full">
         {/* Sapaan */}
-        <section className="card relative overflow-hidden p-6 sm:p-8">
+        <section className="card relative overflow-hidden p-4 sm:p-8">
           <div className="flex items-center justify-between gap-6">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-success-light px-3 py-1 text-xs font-bold text-success-dark">
                 <Leaf size={13} /> Skor gizi hari ini {skor}%
               </span>
-              <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">Halo, {nama}!</h1>
-              <p className="mt-2 text-slate-600">
+              <h1 className="mt-2.5 text-2xl font-extrabold sm:text-3xl">Halo, {nama}!</h1>
+              <p className="mt-1.5 text-sm sm:text-base text-slate-600 leading-relaxed">
                 Sisa anggaran makan hari ini <b>{rupiah(sisa)}</b>. Kamu punya {resep.length} menu terjadwal. Yuk masak hemat &amp; bernutrisi!
               </p>
               <div className="mt-4 flex flex-col sm:flex-row gap-2">
@@ -98,16 +98,19 @@ export default function Beranda() {
           </div>
         </section>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 min-w-0 max-w-full">
           {/* Pengeluaran */}
-          <section className="card space-y-4 p-5">
-            <div className="flex items-center justify-between"><h2 className="text-lg font-extrabold">Pengeluaran</h2><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Minggu ini</span></div>
+          <section className="card space-y-3 sm:space-y-4 p-3.5 sm:p-5 min-w-0 max-w-full">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-800">Pengeluaran</h2>
+              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] sm:text-xs font-semibold text-slate-600 shrink-0">Minggu ini</span>
+            </div>
             <div>
               <div className="text-xs text-slate-500">Total pengeluaran:</div>
-              <div className="text-3xl font-extrabold">{rupiah(totalMinggu)}</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900">{rupiah(totalMinggu)}</div>
               <div className="text-xs text-slate-500">dari target {rupiah(profile.budget * 7)}</div>
             </div>
-            <div className="rounded-2xl bg-slate-50 p-3 overflow-hidden">
+            <div className="rounded-xl sm:rounded-2xl bg-slate-50 p-2 sm:p-3 overflow-hidden">
               <div className="flex h-36 items-end gap-1 sm:gap-2">
                 {minggu.map((h) => (
                   <div key={h.label} className="flex flex-1 min-w-0 flex-col items-center gap-1">
@@ -130,8 +133,11 @@ export default function Beranda() {
           </section>
 
           {/* Ringkasan gizi */}
-          <section className="card flex flex-col p-5">
-            <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-extrabold">Ringkasan Gizi</h2><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Hari ini</span></div>
+          <section className="card flex flex-col p-3.5 sm:p-5 min-w-0 max-w-full">
+            <div className="mb-3 sm:mb-4 flex items-center justify-between gap-2">
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-800">Ringkasan Gizi</h2>
+              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] sm:text-xs font-semibold text-slate-600 shrink-0">Hari ini</span>
+            </div>
             <div className="grid grid-cols-2 gap-y-4">
               <Ring persen={pct(n.kalori, T.kalori)} label="Kalori" detail={`${n.kalori} / ${T.kalori} kkal`} />
               <Ring persen={pct(n.protein, T.protein)} label="Protein" detail={`${n.protein}g / ${T.protein}g`} />
@@ -177,14 +183,14 @@ export default function Beranda() {
       </div>
 
       {/* Kolom kanan */}
-      <div className="space-y-6">
-        <section className="card p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <div><h2 className="text-lg font-extrabold">Jadwal Menu</h2><p className="text-xs text-slate-500">{resep.length} jadwal hari ini</p></div>
+      <div className="space-y-4 sm:space-y-6 min-w-0 max-w-full">
+        <section className="card p-3.5 sm:p-5 min-w-0 max-w-full">
+          <div className="mb-3 sm:mb-4 flex items-center justify-between">
+            <div><h2 className="text-base sm:text-lg font-extrabold text-slate-800">Jadwal Menu</h2><p className="text-xs text-slate-500">{resep.length} jadwal hari ini</p></div>
             <Link href="/menu" className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Ubah</Link>
           </div>
           {resep.length === 0 && <p className="text-sm text-slate-600">Belum ada menu. Tekan "Rekomendasikan Menu".</p>}
-          <ul className="space-y-3">
+          <ul className="space-y-2.5 sm:space-y-3">
             {resep.map((r, i) => {
               const aktif = i === idxBerikut;
               const lewat = idxBerikut === -1 ? jamSekarang != null : i < idxBerikut;
