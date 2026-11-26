@@ -212,6 +212,12 @@ export default function MenuPage() {
     return semua.filter((r) => cocokFilter(r, filterModal));
   }, [semua, resepAktif, filterModal]);
 
+  const planTampil = useMemo(() => {
+    const list = plan.map((id) => getRecipe(id)).filter(Boolean);
+    if (filter === 'Semua') return list;
+    return list.filter((r) => cocokFilter(r, filter));
+  }, [plan, filter]);
+
   if (!ready) return null;
 
   return (
@@ -259,8 +265,9 @@ export default function MenuPage() {
             {FILTERS.map((f) => (
               <button
                 key={f}
+                type="button"
                 onClick={() => setFilter(f)}
-                className={`chip shrink-0 ${filter === f ? 'chip-on shadow-xs' : 'bg-white hover:bg-slate-100'}`}
+                className={`chip shrink-0 cursor-pointer transition-all ${filter === f ? 'chip-on shadow-xs font-bold' : 'bg-white hover:bg-slate-100 text-slate-700'}`}
               >
                 {f}
               </button>
@@ -342,24 +349,32 @@ export default function MenuPage() {
                   <Sparkles size={16} /> Buat Rekomendasi Menu
                 </button>
               </div>
+            ) : planTampil.length === 0 ? (
+              <div className="card text-center py-8 text-sm text-slate-600">
+                <p>Tidak ada menu terpilih hari ini untuk kategori <b>{filter}</b>.</p>
+                <button
+                  type="button"
+                  onClick={() => setFilter('Semua')}
+                  className="mt-2 text-xs font-bold text-brand-dark underline"
+                >
+                  Tampilkan Semua Menu Terpilih (3 Menu)
+                </button>
+              </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {plan
-                  .map((id) => getRecipe(id))
-                  .filter(Boolean)
-                  .map((r) => {
-                    const porsi = customPlanDetails[r.id]?.porsi || 1;
-                    return (
-                      <RecipeCard
-                        key={r.id}
-                        recipe={r}
-                        terpilih
-                        porsi={porsi}
-                        onEdit={() => bukaModalEdit(r)}
-                        onDelete={() => bukaModalHapus(r)}
-                      />
-                    );
-                  })}
+                {planTampil.map((r) => {
+                  const porsi = customPlanDetails[r.id]?.porsi || 1;
+                  return (
+                    <RecipeCard
+                      key={r.id}
+                      recipe={r}
+                      terpilih
+                      porsi={porsi}
+                      onEdit={() => bukaModalEdit(r)}
+                      onDelete={() => bukaModalHapus(r)}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
