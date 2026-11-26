@@ -51,7 +51,7 @@ export default function BahanSisa() {
       {/* Bahan populer */}
       <div>
         <div className="label">Cepat tambah bahan kos populer:</div>
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6 md:-mx-8 md:px-8 lg:mx-0 lg:flex-wrap lg:px-0">
+        <div className="w-full max-w-full overflow-x-auto flex gap-2 pb-2 lg:flex-wrap scrollbar-hide">
           {POPULER.filter((p) => !profile.stok.some((s) => s.toLowerCase() === p.toLowerCase())).map((p) => <button key={p} onClick={() => tambah(p)} className="chip shrink-0 bg-white">+ {p}</button>)}
         </div>
       </div>

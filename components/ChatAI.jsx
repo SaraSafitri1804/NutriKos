@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Sparkles, MessageSquare, X, Send, Bot, User, ArrowRight } from 'lucide-react';
 import { useApp } from './AppProvider';
 import { chatAI } from '@/lib/ai';
@@ -13,10 +14,16 @@ const CONTOH_PERTANYAAN = [
 
 export default function ChatAI() {
   const { profile } = useApp();
+  const pathname = usePathname();
   const [buka, setBuka] = useState(false);
   const [pesan, setPesan] = useState('');
   const [loading, setLoading] = useState(false);
   const namaDepan = profile?.nama?.split(' ')[0] || 'Sobat';
+
+  // Otomatis tutup jendela chat saat berpindah halaman agar tidak menutupi tampilan
+  useEffect(() => {
+    setBuka(false);
+  }, [pathname]);
   const [daftarPesan, setDaftarPesan] = useState([
     {
       pengirim: 'ai',

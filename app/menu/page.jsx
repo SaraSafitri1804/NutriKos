@@ -261,7 +261,7 @@ export default function MenuPage() {
       {mode === 'Harian' ? (
         <>
           {/* Quick Filter Horizontal */}
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 sm:flex-wrap scrollbar-hide">
+          <div className="w-full max-w-full overflow-x-auto flex gap-2 pb-2 sm:flex-wrap scrollbar-hide">
             {FILTERS.map((f) => (
               <button
                 key={f}
@@ -275,14 +275,14 @@ export default function MenuPage() {
           </div>
 
           {/* Target hari ini */}
-          <div className="card flex flex-wrap items-center gap-x-4 gap-y-2 p-4">
+          <div className="card flex flex-wrap items-center gap-3 p-4">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-light text-brand-dark"><Lightbulb size={20} /></span>
-            <div className="text-sm">
+            <div className="min-w-0 flex-1 text-xs sm:text-sm">
               <b>Target Hari Ini:</b> Bujet <b className="text-brand-dark">{rupiah(profile.budget)}</b>
-              <span className="mx-2 text-slate-300">•</span>Target harian <b>{targetGizi(profile).kalori.toLocaleString('id-ID')} kkal</b>
-              <span className="mx-2 text-slate-300">•</span>Menu terpilih <b>{rupiah(total)}</b> ({nutrisiHarian.kalori} kkal, protein {nutrisiHarian.protein}g)
+              <span className="mx-1.5 text-slate-300">•</span>Target harian <b>{targetGizi(profile).kalori.toLocaleString('id-ID')} kkal</b>
+              <span className="mx-1.5 text-slate-300">•</span>Menu terpilih <b>{rupiah(total)}</b> ({nutrisiHarian.kalori} kkal, protein {nutrisiHarian.protein}g)
             </div>
-            <span className={`ml-auto rounded-full px-3 py-1 text-xs font-bold ${total <= profile.budget ? 'bg-success-light text-success-dark' : 'bg-red-100 text-red-700'}`}>
+            <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${total <= profile.budget ? 'bg-success-light text-success-dark' : 'bg-red-100 text-red-700'}`}>
               {total <= profile.budget ? `Hemat ${hemat}%` : 'Melebihi Bujet'}
             </span>
           </div>

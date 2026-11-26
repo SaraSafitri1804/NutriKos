@@ -14,13 +14,13 @@ export default function Shell({ children }) {
   const path = usePathname();
   if (RUTE_AKUN.includes(path)) return <>{children}</>;
   return (
-    <div className="flex min-h-screen w-full bg-surface">
+    <div className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-surface">
       <SesiSync />
       <SinkronData />
       <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col max-w-full overflow-x-hidden">
         <Header />
-        <main className="w-full flex-1 min-w-0 px-4 py-6 sm:px-6 md:px-8 xl:px-10 pb-28 lg:pb-12">{children}</main>
+        <main className="w-full flex-1 min-w-0 max-w-full px-4 py-5 sm:px-6 md:px-8 xl:px-10 pb-36 sm:pb-32 lg:pb-12">{children}</main>
       </div>
       <ChatAI />
       <BottomNav />
