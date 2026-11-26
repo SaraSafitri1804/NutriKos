@@ -98,8 +98,6 @@ export default function MenuPage() {
     setHalaman(1);
   }, [filter, q]);
 
-  if (!ready) return null;
-
   // Filter resep
   const cocokFilter = (r, f) => {
     if (f === 'Sarapan') return r.slot === 'pagi';
@@ -213,6 +211,8 @@ export default function MenuPage() {
     if (!resepAktif) return semua;
     return semua.filter((r) => cocokFilter(r, filterModal));
   }, [semua, resepAktif, filterModal]);
+
+  if (!ready) return null;
 
   return (
     <div className="space-y-6 pb-24 lg:pb-8">
