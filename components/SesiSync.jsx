@@ -108,8 +108,9 @@ export default function SesiSync() {
           tugas.push((async () => {
             const del = await sb.from('bahan_sisa').delete().eq('pengguna_id', id);
             if (del.error) return del;
-            if (!profile.stok.length) return { error: null };
-            return sb.from('bahan_sisa').insert(profile.stok.map((nama) => ({ pengguna_id: id, nama })));
+            const unik = [...new Set((profile.stok || []).map((s) => s.trim()).filter(Boolean))];
+            if (!unik.length) return { error: null };
+            return sb.from('bahan_sisa').insert(unik.map((nama) => ({ pengguna_id: id, nama })));
           })());
         }
         const hasil = await Promise.all(tugas);
@@ -121,7 +122,7 @@ export default function SesiSync() {
         console.warn('NutriKos: gagal menyimpan ke database.', e?.message);
         setStatus('gagal');
       }
-    }, 800);
+    }, 400);
     return () => clearTimeout(t);
   }, [profile, dbSiap, akunId]);
 

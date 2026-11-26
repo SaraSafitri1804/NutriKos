@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { useApp, hariIni } from './AppProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { getRecipe, SLOTS } from '@/lib/data';
+import { recommendDaily } from '@/lib/recommend';
 import { laporSync } from '@/lib/sync-status';
 
 // Sinkronisasi menu terjadwal (jadwal_makan), favorit, riwayat menu (riwayat_menu) - langkah 7b,
@@ -40,29 +41,30 @@ export default function SinkronData() {
           sb.from('riwayat_menu').select('tanggal,resep_id').eq('pengguna_id', akunId).gte('tanggal', hariLalu(120)),
           sb.from('daftar_belanja').select('kondisi').eq('pengguna_id', akunId).maybeSingle(),
         ]);
-        if (jd.error || fv.error || rw.error || bl.error) throw new Error('gagal memuat');
+        if (jd.error || fv.error || rw.error) throw new Error(jd.error?.message || fv.error?.message || rw.error?.message || 'gagal memuat');
+        if (bl.error) console.warn('NutriKos: tabel daftar_belanja belum tersedia, jalankan supabase/langkah7c.sql.', bl.error.message);
 
-        const lokal = terbaru.current;
         const patch = {};
-        // Jadwal hari ini: bila ada di database, database menang; bila tidak, pakai menu lokal tanpa menyimpannya.
-        let planDasar = lokal.plan, rinciDasar = lokal.customPlanDetails;
+        // Jadwal hari ini: bila ada di database, pakai dari database; bila belum ada, buat baru sesuai profil akun ini (jangan bawa jadwal akun lain).
+        let planDasar = recommendDaily(profile);
+        let rinciDasar = {};
         if (jd.data.length) {
           planDasar = jd.data.map((r) => r.resep_id).sort((a, b) => urutSlot(a) - urutSlot(b));
-          rinciDasar = {};
           jd.data.forEach((r) => { if (r.rincian && Object.keys(r.rincian).length) rinciDasar[r.resep_id] = r.rincian; });
-          patch.plan = planDasar;
-          patch.customPlanDetails = rinciDasar;
         }
+        patch.plan = planDasar;
+        patch.customPlanDetails = rinciDasar;
+
         const favDasar = fv.data.map((r) => r.resep_id);
         const logDasar = {};
         rw.data.forEach((r) => { (logDasar[r.tanggal] = logDasar[r.tanggal] || []).push(r.resep_id); });
         patch.favorit = favDasar;
         patch.log = logDasar;
 
-        // Daftar belanja: bila sudah ada di database, database menang; bila belum, pakai kondisi lokal tanpa menyimpannya.
+        // Daftar belanja: bila ada di database, pakai dari database; bila belum ada, kosongkan agar data akun sebelumnya tidak terbawa.
         let belanjaDasar = {
-          extra: lokal.extra, checked: lokal.checked, customShoppingItems: lokal.customShoppingItems,
-          shoppingOverrides: lokal.shoppingOverrides, deletedShoppingItems: lokal.deletedShoppingItems,
+          extra: [], checked: {}, customShoppingItems: [],
+          shoppingOverrides: {}, deletedShoppingItems: [],
         };
         if (bl.data?.kondisi && Object.keys(bl.data.kondisi).length) {
           const k = bl.data.kondisi;
@@ -70,10 +72,15 @@ export default function SinkronData() {
             extra: k.extra || [], checked: k.checked || {}, customShoppingItems: k.customShoppingItems || [],
             shoppingOverrides: k.shoppingOverrides || {}, deletedShoppingItems: k.deletedShoppingItems || [],
           };
-          Object.assign(patch, belanjaDasar);
         }
+        Object.assign(patch, belanjaDasar);
 
-        dasar.current = { jadwal: kunciJadwal(planDasar, rinciDasar), favorit: favDasar, log: logDasar, belanja: kunciBelanja(belanjaDasar) };
+        dasar.current = {
+          jadwal: jd.data.length ? kunciJadwal(planDasar, rinciDasar) : '',
+          favorit: favDasar,
+          log: logDasar,
+          belanja: kunciBelanja(belanjaDasar),
+        };
         muatUntuk.current = akunId;
         hydrate(patch);
       } catch (e) {
@@ -119,7 +126,8 @@ export default function SinkronData() {
           if (ids.length) galat(await sb.from('riwayat_menu').insert(ids.map((id) => ({ pengguna_id: akunId, resep_id: id, tanggal: tgl }))));
         }
         if (belanjaBerubah) {
-          galat(await sb.from('daftar_belanja').upsert({ pengguna_id: akunId, kondisi: belanja, diperbarui_pada: new Date().toISOString() }, { onConflict: 'pengguna_id' }));
+          const resBelanja = await sb.from('daftar_belanja').upsert({ pengguna_id: akunId, kondisi: belanja, diperbarui_pada: new Date().toISOString() }, { onConflict: 'pengguna_id' });
+          if (resBelanja.error) console.warn('NutriKos: gagal menyimpan daftar_belanja (pastikan supabase/langkah7c.sql sudah dijalankan).', resBelanja.error.message);
         }
         dasar.current = { jadwal: jadwalKini, favorit: [...favorit], log: JSON.parse(JSON.stringify(log)), belanja: belanjaKini };
         laporSync('tersimpan');

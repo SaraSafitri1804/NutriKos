@@ -6,17 +6,29 @@ import { Clock, ChevronLeft, ChevronRight, ShoppingCart, Check, Heart, Share2, U
 import { useApp } from '@/components/AppProvider';
 import Ring from '@/components/Ring';
 import { getRecipe, rupiah, SLOTS, SLOT_LABEL, targetGizi } from '@/lib/data';
-import { adaDiStok } from '@/lib/recommend';
+import { adaDiStok, cocok } from '@/lib/recommend';
 
 export default function DetailResep() {
   const { id } = useParams();
   const router = useRouter();
-  const { profile, plan, setPlan, addExtra, favorit, toggleFavorit, ready } = useApp();
+  const { profile, setProfile, plan, setPlan, addExtra, favorit, toggleFavorit, ready } = useApp();
   const [tab, setTab] = useState('bahan');
   const [tersalin, setTersalin] = useState(false);
   const r = getRecipe(id);
   if (!ready) return null;
   if (!r) return <div className="card">Resep tidak ditemukan.</div>;
+
+  const toggleBahanStok = (item) => {
+    const ada = adaDiStok(profile, item.kunci);
+    const stokLama = profile.stok || [];
+    let stokBaru;
+    if (ada) {
+      stokBaru = stokLama.filter((s) => !cocok(s, item.kunci));
+    } else {
+      stokBaru = [...stokLama, item.nama];
+    }
+    setProfile({ stok: stokBaru });
+  };
 
   const T = targetGizi(profile);
   const suka = favorit.includes(r.id);
@@ -87,16 +99,21 @@ export default function DetailResep() {
 
             {tab === 'bahan' ? (
               <div className="space-y-2">
-                <p className="text-xs text-slate-500">Status bahan dibandingkan dengan stok di kosmu (ubah di <Link href="/bahan-sisa" className="font-bold text-brand-dark underline">Cek Bahan Sisa</Link>).</p>
+                <p className="text-xs text-slate-500">Klik bahan untuk mencentang jika bahan sudah tersedia di kosmu (otomatis tersimpan ke stok).</p>
                 {r.bahan.map((x) => {
                   const punya = adaDiStok(profile, x.kunci);
                   return (
-                    <div key={x.nama} className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3">
-                      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${punya ? 'bg-success text-white' : 'border border-slate-300 bg-white'}`}>{punya && <Check size={14} />}</span>
-                      <div className="min-w-0 flex-1"><div className="font-semibold">{x.nama}</div><div className="text-xs text-slate-500">{x.qty}</div></div>
+                    <button
+                      key={x.nama}
+                      type="button"
+                      onClick={() => toggleBahanStok(x)}
+                      className="flex w-full items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-left transition-colors hover:bg-slate-100"
+                    >
+                      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors ${punya ? 'bg-success text-white' : 'border border-slate-300 bg-white hover:border-brand-dark'}`}>{punya && <Check size={14} />}</span>
+                      <div className="min-w-0 flex-1"><div className="font-semibold text-slate-800">{x.nama}</div><div className="text-xs text-slate-500">{x.qty}</div></div>
                       <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${punya ? 'bg-success-light text-success-dark' : 'bg-accent-light text-amber-800'}`}>{punya ? 'Tersedia di Kos' : 'Perlu Dibeli'}</span>
-                      <span className="w-20 text-right text-sm font-semibold">{rupiah(x.harga)}</span>
-                    </div>
+                      <span className="w-20 text-right text-sm font-semibold text-slate-700">{rupiah(x.harga)}</span>
+                    </button>
                   );
                 })}
                 <div className="mt-3 flex items-center gap-3 rounded-2xl bg-brand-light p-4">

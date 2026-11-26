@@ -6,9 +6,11 @@ import { User, Mail, Building2, Lock, ShieldCheck, ArrowRight } from 'lucide-rea
 import { AuthCard, Field, InputSandi, Pesan, kelasInput } from '@/components/auth/AuthCard';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { terjemahError, kekuatanSandi, SANDI_MIN } from '@/lib/auth-utils';
+import { useApp } from '@/components/AppProvider';
 
 export default function Register() {
   const router = useRouter();
+  const { reset } = useApp();
   const [f, setF] = useState({ nama: '', email: '', kampus: '', sandi: '', ulang: '', setuju: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -22,6 +24,7 @@ export default function Register() {
     if (!f.nama.trim()) return setError('Nama lengkap wajib diisi.');
     if (!/^\S+@\S+\.\S+$/.test(f.email.trim())) return setError('Format email tidak valid.');
     if (f.sandi.length < SANDI_MIN) return setError(`Kata sandi minimal ${SANDI_MIN} karakter.`);
+    if (kuat.skor < 3) return setError('Kata sandi harus Kuat (kombinasi huruf besar, huruf kecil, angka, dan simbol atau min. 10 karakter dengan angka).');
     if (f.sandi !== f.ulang) return setError('Konfirmasi kata sandi tidak sama.');
     if (!f.setuju) return setError('Centang persetujuan penggunaan untuk melanjutkan.');
     setLoading(true);
@@ -38,7 +41,7 @@ export default function Register() {
         setLoading(false);
         return;
       }
-      if (data.session) { router.push('/'); router.refresh(); }
+      if (data.session) { reset(); router.push('/beranda'); router.refresh(); }
       else { setCekEmail(true); setLoading(false); }
     } catch (ex) {
       setError(terjemahError(ex.message));
@@ -55,7 +58,7 @@ export default function Register() {
   }
 
   return (
-    <AuthCard badge="Akun Baru Mahasiswa" judul="Daftar Akun NutriKos" deskripsi="Mulai atur pola makan sehat, hemat, dan praktis sesuai fasilitas kosmu.">
+    <AuthCard judul="Daftar Akun NutriKos">
       <form onSubmit={daftar} className="space-y-4" noValidate>
         <Field id="nama" label="Nama Lengkap" Icon={User}>
           <input id="nama" autoComplete="name" placeholder="Nama lengkap kamu" value={f.nama} onChange={(e) => ubah({ nama: e.target.value })} className={kelasInput} />
@@ -73,14 +76,14 @@ export default function Register() {
           <div className="mt-2 flex gap-1.5" aria-hidden="true">
             {[1, 2, 3].map((i) => <span key={i} className={`h-1.5 flex-1 rounded-full ${kuat.skor >= i ? (kuat.skor === 3 ? 'bg-success' : kuat.skor === 2 ? 'bg-brand-dark' : 'bg-accent') : 'bg-slate-200'}`} />)}
           </div>
-          <div className="mt-1 flex justify-between text-[11px] text-slate-500"><span>Kekuatan kata sandi</span><span>{kuat.label}</span></div>
+          <div className="mt-1 flex justify-between text-[11px] text-slate-500"><span>Wajib Kuat (huruf besar, kecil, angka &amp; simbol)</span><span className={kuat.skor === 3 ? 'font-bold text-success-dark' : ''}>{kuat.label}</span></div>
         </div>
         <Field id="ulang" label="Konfirmasi Kata Sandi">
           <InputSandi id="ulang" Icon={ShieldCheck} autoComplete="new-password" placeholder="Ulangi kata sandi" value={f.ulang} onChange={(e) => ubah({ ulang: e.target.value })} />
         </Field>
         <label className="flex items-start gap-2 text-xs text-slate-600">
           <input type="checkbox" checked={f.setuju} onChange={(e) => ubah({ setuju: e.target.checked })} className="mt-0.5 h-4 w-4 accent-brand-dark" />
-          <span>Saya menyetujui bahwa data akun dipakai untuk menyusun rekomendasi menu di NutriKos. Rekomendasi gizi bersifat panduan umum, bukan pengganti saran ahli gizi.</span>
+          <span>Saya menyetujui ketentuan penggunaan NutriKos.</span>
         </label>
         <Pesan>{error}</Pesan>
         <button type="submit" disabled={loading} className="btn btn-primary w-full rounded-full py-3.5 text-base shadow-md disabled:opacity-70">

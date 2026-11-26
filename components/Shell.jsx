@@ -8,7 +8,7 @@ import SesiSync from './SesiSync';
 import SinkronData from './SinkronData';
 
 // Halaman perkenalan dan halaman akun (login, daftar, dst.) tampil tanpa sidebar, header, dan chatbot.
-export const RUTE_AKUN = ['/mulai', '/login', '/register', '/lupa-sandi', '/reset-sandi'];
+export const RUTE_AKUN = ['/', '/mulai', '/login', '/register', '/lupa-sandi', '/reset-sandi'];
 
 export default function Shell({ children }) {
   const path = usePathname();

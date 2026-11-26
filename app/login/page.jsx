@@ -6,9 +6,11 @@ import { Mail, Lock, ArrowRight } from 'lucide-react';
 import { AuthCard, Field, InputSandi, Pesan, kelasInput } from '@/components/auth/AuthCard';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { terjemahError } from '@/lib/auth-utils';
+import { useApp } from '@/components/AppProvider';
 
 export default function Login() {
   const router = useRouter();
+  const { reset } = useApp();
   const [email, setEmail] = useState('');
   const [sandi, setSandi] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,9 +24,10 @@ export default function Login() {
     try {
       const { error: err } = await supabaseBrowser().auth.signInWithPassword({ email: email.trim(), password: sandi });
       if (err) { setError(terjemahError(err.message)); setLoading(false); return; }
+      reset();
       const next = new URLSearchParams(window.location.search).get('next');
       const aman = next && next.startsWith('/') && !next.startsWith('//') && !['/login', '/register'].includes(next);
-      router.push(aman ? next : '/');
+      router.push(aman ? next : '/beranda');
       router.refresh();
     } catch (ex) {
       setError(terjemahError(ex.message));
@@ -33,7 +36,7 @@ export default function Login() {
   };
 
   return (
-    <AuthCard badge="Akses Komunitas Anak Kos Sehat" judul="Masuk ke NutriKos" deskripsi="Kelola menu makan sehat & hemat anak kos setiap hari.">
+    <AuthCard judul="Masuk ke NutriKos">
       <form onSubmit={masuk} className="space-y-4" noValidate>
         <Field id="email" label="Email" Icon={Mail}>
           <input id="email" type="email" autoComplete="email" placeholder="contoh: nama@campus.ac.id" value={email} onChange={(e) => setEmail(e.target.value)} className={kelasInput} />

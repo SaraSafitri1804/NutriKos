@@ -62,7 +62,8 @@ begin
     new.raw_user_meta_data ->> 'program_studi',
     nullif(new.raw_user_meta_data ->> 'semester', '')::int
   );
-  insert into public.profil_kos (pengguna_id) values (new.id);
+  insert into public.profil_kos (pengguna_id, alat_masak, alergi_pantangan, lokasi)
+  values (new.id, '{}', '{}', '');
   return new;
 end;
 $$;

@@ -1,4 +1,4 @@
-import { RECIPES, SLOTS, getRecipe } from '@/lib/data';
+import { RECIPES, SLOTS, SLOT_LABEL, getRecipe, targetGizi } from '@/lib/data';
 import { allowedRecipes, recommendDaily, ideasFromStock, nutrisiDari } from '@/lib/recommend';
 
 export const runtime = 'nodejs';
@@ -17,6 +17,7 @@ const bersih = (s, n = 50) => String(s).replace(/[^\p{L}\p{N}\s&/().,-]/gu, '').
 
 function bacaProfil(p = {}) {
   return {
+    nama: p.nama ? bersih(p.nama, 50) : '',
     budget: Math.min(100000, Math.max(10000, Number(p.budget) || 30000)),
     alat: (Array.isArray(p.alat) ? p.alat : []).slice(0, 8).map((x) => bersih(x)),
     pantangan: (Array.isArray(p.pantangan) ? p.pantangan : []).slice(0, 8).map((x) => bersih(x)),
@@ -67,7 +68,7 @@ Kepribadianmu:
 - Jangan pakai format bullet yang terlalu kaku kalau nggak perlu; kadang jawab mengalir aja lebih enak
 
 Profil mahasiswa ini:
-- Bujet: Rp${(profil?.budget || 30000).toLocaleString('id-ID')}/hari
+${profil?.nama ? `- Nama: ${profil.nama}\n` : ''}- Bujet: Rp${(profil?.budget || 30000).toLocaleString('id-ID')}/hari
 - Alat masak: ${(profil?.alat?.length ? profil.alat : ['Rice Cooker', 'Kompor']).join(', ')}
 - Pantangan: ${(profil?.pantangan?.length ? profil.pantangan : ['Halal']).join(', ')}
 - Stok bahan di kos: ${(profil?.stok?.length ? profil.stok : ['—']).join(', ')}
@@ -83,8 +84,8 @@ async function panggilAI(prompt) {
   if (key) {
     // Model resmi yang aktif dan didukung untuk API key Gemini baru
     const models = [
-      process.env.GEMINI_MODEL?.trim() || 'gemini-flash-lite-latest',
-      'gemini-3.5-flash-lite',
+      process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash',
+      'gemini-2.0-flash',
       'gemini-flash-latest',
     ];
 
@@ -209,23 +210,141 @@ export async function POST(req) {
       const jawaban = await panggilAI(prompt);
       return Response.json({ balasan: jawaban, sumber: 'ai' });
     } catch (e) {
-      // Fallback jawaban cerdas lokal jika offline/tanpa API key
-      const pesanLower = pesan.toLowerCase();
-      const alatInfo = (profil.alat && profil.alat.length) ? `alat ${profil.alat.join(', ')}` : 'alat seadanya';
-      let fallbackText = `Dengan bujet Rp${(profil.budget || 30000).toLocaleString('id-ID')}/hari dan ${alatInfo}, fokus ke protein murah dulu: telur, tahu, tempe. Belanja sayur di warung gang atau pasar subuh bisa hemat 40% loh!`;
+      // Fallback cerdas berbasis 50 resep & profil pengguna jika API AI tidak tersedia
+      const q = pesan.toLowerCase();
+      const stopwords = new Set(['yang', 'dan', 'untuk', 'buat', 'mau', 'apa', 'ada', 'bisa', 'atau', 'dengan', 'pakai', 'cari', 'menu', 'makan', 'resep', 'masak', 'masakan', 'enak', 'enaknya', 'dong', 'nih', 'sih', 'kak', 'min', 'hari', 'ini', 'kira', 'kalau', 'kalo', 'cuma', 'punya', 'paling', 'kamar', 'kos', 'kosan', 'gimana', 'cara', 'bikin', 'tapi', 'aku', 'saya', 'gue', 'tidak', 'nggak', 'gak', 'bukan', 'tanpa', 'sama', 'apain', 'diapain', 'jadi', 'aja', 'saja', 'masih', 'lagi', 'yah', 'deh']);
+      const sinonim = { cabe: 'cabai', telor: 'telur', mie: 'mi', kubis: 'kol', kobis: 'kol', sayur: 'sayur' };
 
-      if (pesanLower.includes('tempe')) {
-        fallbackText = 'Tempe itu jagoan anak kos! Coba: 1) Tempe orek kecap (potong dadu, goreng, tumis bawang + kecap manis), 2) Nasi liwet tempe di rice cooker (masukin tempe sama bawang putih waktu masak nasi), atau 3) Tempe goreng tepung renyah. Murah, gampang, dan proteinnya lumayan tinggi!';
-      } else if (pesanLower.includes('tahu')) {
-        fallbackText = 'Tahu gampang banget! Tumis tahu tauge kecap cuma 10 menit, atau coba tahu orak-arik telur, atau sup tahu sayur bening yang segar. Semua bisa di rice cooker/kompor dan harganya di bawah Rp5.000!';
-      } else if (pesanLower.includes('telur')) {
-        fallbackText = 'Telur itu superfood-nya anak kos. 1 butir ~6g protein, harga Rp2.000-an. Variasiin jadi dadar daun bawang, orak-arik kol, atau telur rebus kecap — bisa di rice cooker semua!';
-      } else if (pesanLower.includes('kangkung') || pesanLower.includes('bayam') || pesanLower.includes('sayur')) {
-        fallbackText = 'Kangkung sama bayam itu Rp2.000-3.000 seikat, worth it banget! Tumis 3-5 menit sama bawang + cabai rawit sudah enak. Jangan overcook biar seratnya tetap bagus.';
-      } else if (pesanLower.includes('bujet') || pesanLower.includes('hemat') || pesanLower.includes('uang')) {
-        fallbackText = `Trik hemat bujet Rp${(profil.budget || 30000).toLocaleString('id-ID')}/hari: masak nasi sendiri (hemat Rp10K/hari), beli bumbu racik eceran Rp1.000, dan belanja sayur ikat di warung subuh. Protein dari tahu-tempe-telur sudah cukup gizi!`;
-      } else if (pesanLower.includes('rice cooker')) {
-        fallbackText = 'Rice cooker bukan cuma buat nasi! Kamu bisa masak nasi liwet tempe, bubur kacang hijau, sup sayur bening, sampai ngukus telur + tahu sekaligus bareng nasi. Life hack banget!';
+      // Deteksi bahan yang tidak dimiliki / ingin dihindari ("ga punya udang", "tanpa telur", "gak ada ayam")
+      const hindari = [];
+      const polaHindari = /\b(?:ga|gak|nggak|tidak|tak|tanpa|bukan|gapunya)\s+(?:punya\s+|ada\s+|pakai\s+)?([a-z]+)/g;
+      for (const m of q.matchAll(polaHindari)) {
+        const w = sinonim[m[1]] || m[1];
+        if (w && w.length >= 3 && !stopwords.has(w)) hindari.push(w);
+      }
+      const setHindari = new Set(hindari);
+
+      const kata = q
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .split(/\s+/)
+        .map((w) => sinonim[w] || w)
+        .filter((w) => w.length >= 3 && !stopwords.has(w) && !setHindari.has(w));
+      const kandidatChat = allowedRecipes(profil);
+      const sumberDasar = kandidatChat.length ? kandidatChat : RECIPES;
+      const sumberResep = setHindari.size
+        ? sumberDasar.filter((r) => {
+            const teks = `${r.nama} ${r.bahan.map((b) => `${b.nama} ${b.kunci}`).join(' ')}`.toLowerCase();
+            return ![...setHindari].some((h) => teks.includes(h));
+          })
+        : sumberDasar;
+
+      // Jika user hanya bilang "ga punya X" tanpa kata kunci lain, ambil topik bahan/menu dari pesan user sebelumnya
+      const kataKonteks = kata.length === 0 && riwayat.length
+        ? riwayat
+            .filter((m) => m.dari === 'user')
+            .slice(-2)
+            .map((m) => m.teks || '')
+            .join(' ')
+            .toLowerCase()
+            .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+            .split(/\s+/)
+            .filter((w) => w.length >= 3 && !stopwords.has(w) && !setHindari.has(w))
+        : [];
+      const kataCari = kata.length ? kata : kataKonteks;
+
+      const cariCocok = () =>
+        sumberResep
+          .map((r) => {
+            let skor = 0;
+            const nama = r.nama.toLowerCase();
+            const bahan = r.bahan.map((b) => `${b.nama} ${b.kunci}`.toLowerCase()).join(' ');
+            const alat = r.alat.map((a) => a.toLowerCase()).join(' ');
+            const slot = (SLOT_LABEL[r.slot] || r.slot).toLowerCase();
+            for (const k of kataCari) {
+              if (nama.includes(k)) skor += 3;
+              if (bahan.includes(k)) skor += 2;
+              if (alat.includes(k) || slot.includes(k)) skor += 2;
+            }
+            if (q.includes('protein') && r.protein >= 18) skor += 2;
+            if ((q.includes('hemat') || q.includes('murah') || q.includes('bujet')) && r.harga <= 10000) skor += 2;
+            if (q.includes('cepat') && r.waktu <= 10) skor += 2;
+            if (q.includes('sarapan') || q.includes('pagi')) { if (r.slot === 'pagi') skor += 2; }
+            if (q.includes('siang')) { if (r.slot === 'siang') skor += 2; }
+            if (q.includes('malam')) { if (r.slot === 'malam') skor += 2; }
+            if (q.includes('rice cooker') && r.alat.includes('Rice Cooker')) skor += 3;
+            return { r, skor };
+          })
+          .filter((x) => x.skor > 0)
+          .sort((a, b) => b.skor - a.skor || a.r.harga - b.r.harga)
+          .slice(0, 3)
+          .map((x) => x.r);
+
+      let fallbackText;
+      const pilihNomor = q.match(/(?:\bno\.?\s*|\bnomor\s*|\bke[-\s]*|\bpilih\s*|\byang\s*|\byg\s*)?([1-9])\b/) && /\b(?:no|nomor|pilih|mau|yg|yang|ke)\b|^\s*[1-9]\s*$/.test(q);
+      if (pilihNomor) {
+        const angka = Number(q.match(/([1-9])/)?.[1]);
+        const aiTerakhir = [...riwayat].reverse().find((m) => m.dari === 'ai')?.teks || '';
+        const cocokBaris = [...aiTerakhir.matchAll(/^\s*([1-9])\.\s+([^\n]+)/gm)].find((m) => Number(m[1]) === angka);
+        const judulDipilih = cocokBaris?.[2]?.split(/\s*[—(]/)[0]?.trim().toLowerCase();
+        const resepDipilih = judulDipilih ? RECIPES.find((r) => r.nama.toLowerCase() === judulDipilih || r.nama.toLowerCase().includes(judulDipilih)) : null;
+        if (resepDipilih) {
+          fallbackText = `Oke, ini resep ${resepDipilih.nama} (~Rp${resepDipilih.harga.toLocaleString('id-ID')}, ${resepDipilih.waktu} menit):\nBahan: ${resepDipilih.bahan.map((b) => `${b.nama} (${b.qty})`).join(', ')}\nLangkah:\n${resepDipilih.langkah.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
+        }
+      }
+
+      if (fallbackText) {
+        // sudah terisi dari pilihan nomor
+      } else if (/\b(makasih|terima\s*kasih|thanks|thank\s*you|thx|tq)\b/.test(q)) {
+        const sapa = profil.nama ? profil.nama.split(' ')[0] : 'Sobat';
+        fallbackText = `Sama-sama, ${sapa}! Kalau butuh ide masak, resep, atau tips hemat lagi, tinggal chat aja ya 😊`;
+      } else if (/^\s*(ok|oke|okey|okay|sip|siap|mantap|bagus|baik|iya|ya|noted)\b/.test(q) && kata.length <= 2) {
+        const sapa = profil.nama ? profil.nama.split(' ')[0] : 'Sobat';
+        fallbackText = `Siap, ${sapa}! Selamat memasak dan semoga makin hemat ya 🍳`;
+      } else if (q.includes('awet') || q.includes('tahan lama') || q.includes('simpan') || q.includes('busuk')) {
+        fallbackText = 'Sayur yang paling awet di kamar kos (tanpa kulkas bisa 3–7 hari): wortel, kol/kubis, kentang, labu siam, dan buncis. Simpan di tempat kering, jangan dicuci dulu sebelum dimasak. Untuk protein awet: telur, tempe, ikan teri, dan sarden.';
+      } else if (/\b(halo|hai|hi|hei)\b/.test(q) && kata.length === 0) {
+        const sapa = profil.nama ? profil.nama.split(' ')[0] : 'Sobat';
+        fallbackText = `Hai ${sapa}! Mau tanya ide masak bahan tertentu, resep cepat, atau rekomendasi menu sesuai bujet Rp${(profil.budget || 30000).toLocaleString('id-ID')}/hari?`;
+      } else if (q.includes('gizi') || q.includes('kalori') || q.includes('akg')) {
+        const t = targetGizi(profil);
+        fallbackText = `Target gizimu sekitar ${t.kalori.toLocaleString('id-ID')} kkal/hari (protein ${t.protein}g, karbo ${t.karbo}g, serat ${t.serat}g). Kombinasikan karbohidrat (nasi/oat) + protein murah (telur/tahu/tempe) + sayur hijau agar seimbang dan tetap hemat.`;
+      } else if (q.includes('stok') || q.includes('sisa')) {
+        const ide = ideasFromStock(profil).slice(0, 3);
+        fallbackText = ide.length
+          ? `Dari stok di kosmu (${profil.stok.join(', ')}), ini menu yang paling pas:\n` + ide.map((x, i) => `${i + 1}. ${x.recipe.nama} (${x.persen}% bahan ada, ~Rp${x.recipe.harga.toLocaleString('id-ID')})`).join('\n')
+          : 'Stok bahan di kosmu masih kosong. Tambahkan bahan di halaman Cek Bahan Sisa dulu ya!';
+      } else {
+        const bahanTidakAda = kataCari.filter((k) => !sumberResep.some((r) => `${r.nama} ${r.bahan.map((b) => `${b.nama} ${b.kunci}`).join(' ')}`.toLowerCase().includes(k)));
+        const cocok = bahanTidakAda.length ? [] : cariCocok();
+        if (cocok.length > 0) {
+          const mintaCara = q.includes('cara') || q.includes('gimana') || q.includes('langkah') || q.includes('bikin');
+          if (mintaCara) {
+            const top = cocok[0];
+            fallbackText = `Resep ${top.nama} (~Rp${top.harga.toLocaleString('id-ID')}, ${top.waktu} menit):\nBahan: ${top.bahan.map((b) => `${b.nama} (${b.qty})`).join(', ')}\nLangkah:\n${top.langkah.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
+          } else {
+            const daftar = cocok
+              .map((r, i) => `${i + 1}. ${r.nama} — Rp${r.harga.toLocaleString('id-ID')} (${r.kalori} kkal, ${r.protein}g protein, ${r.waktu} mnt)`)
+              .join('\n');
+            const catatanHindari = hindari.length
+              ? `Oke, tanpa ${hindari.join(', ')} ya! Kamu bisa ganti dengan telur/tahu/tempe, atau pilih menu ini:\n`
+              : 'Rekomendasi yang cocok buat kamu:\n';
+            fallbackText = `${catatanHindari}${daftar}`;
+          }
+        } else if (hindari.length > 0) {
+          const alt = sumberResep.slice(0, 3)
+            .map((r, i) => `${i + 1}. ${r.nama} — Rp${r.harga.toLocaleString('id-ID')}`)
+            .join('\n');
+          fallbackText = `Oke, tanpa ${hindari.join(', ')} ya! Kamu bisa ganti dengan telur, tahu, atau tempe. Atau coba menu alternatif ini:\n${alt}`;
+        } else if (kataCari.length > 0 && !q.includes('menu hari ini') && !q.includes('rekomendasi')) {
+          const alatInfo = (profil.alat && profil.alat.length) ? profil.alat.join(' / ') : 'kompor atau rice cooker';
+          fallbackText = `Untuk olahan ${kataCari.join(' & ')}, kamu bisa masak praktis pakai ${alatInfo}: rebus atau goreng sebentar, lalu tumis dengan bawang merah, bawang putih, cabai, dan kecap/garam. Cocok banget dimakan hangat bareng nasi dan telur dadar!`;
+        } else {
+          const paket = recommendDaily(profil).map(getRecipe).filter(Boolean);
+          const total = paket.reduce((s, r) => s + r.harga, 0);
+          fallbackText = `Ini rekomendasi menu 1 hari sesuai bujet Rp${(profil.budget || 30000).toLocaleString('id-ID')}:\n` +
+            paket.map((r) => `• ${SLOT_LABEL[r.slot]}: ${r.nama} (Rp${r.harga.toLocaleString('id-ID')})`).join('\n') +
+            `\nTotal: Rp${total.toLocaleString('id-ID')}`;
+        }
       }
       return Response.json({ balasan: fallbackText, sumber: 'aturan' });
     }

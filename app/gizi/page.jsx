@@ -78,18 +78,18 @@ export default function Gizi() {
   return (
     <div className="space-y-6">
       {/* Judul */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-extrabold sm:text-3xl">Gizi Mingguan</h1>
           <p className="text-slate-600">Pantau kebutuhan kalori dan keseimbangan nutrisimu selama seminggu.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-full bg-white px-2 py-1.5 text-sm font-bold shadow-sm">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-nowrap">
+          <div className="flex items-center gap-1 whitespace-nowrap rounded-full bg-white px-2 py-1.5 text-sm font-bold shadow-sm">
             <button aria-label="Minggu sebelumnya" onClick={() => setOffset(offset - 1)} className="rounded-full p-1 hover:bg-slate-100"><ChevronLeft size={16} /></button>
             <span className="px-1">{rentang}</span>
             <button aria-label="Minggu berikutnya" disabled={offset >= 0} onClick={() => setOffset(offset + 1)} className="rounded-full p-1 hover:bg-slate-100 disabled:opacity-30"><ChevronRight size={16} /></button>
           </div>
-          <Link href="/profil-kos" className="btn btn-primary"><SlidersHorizontal size={16} /> Atur Target Gizi</Link>
+          <Link href="/profil-kos" className="btn btn-primary whitespace-nowrap"><SlidersHorizontal size={16} /> Atur Target Gizi</Link>
         </div>
       </div>
 

@@ -16,6 +16,7 @@ import {
   Clock,
   Flame,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
 import { useApp } from '@/components/AppProvider';
@@ -50,8 +51,19 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('Harian');
   const [filter, setFilter] = useState('Semua');
+  const [halaman, setHalaman] = useState(1);
   const [q, setQ] = useState('');
-  useEffect(() => { setQ((new URLSearchParams(window.location.search).get('q') || '').toLowerCase()); }, []);
+  useEffect(() => {
+    const bacaQuery = () => setQ((new URLSearchParams(window.location.search).get('q') || '').trim().toLowerCase());
+    const dengarCari = (e) => setQ((e.detail || '').trim().toLowerCase());
+    bacaQuery();
+    window.addEventListener('popstate', bacaQuery);
+    window.addEventListener('nutrikos-search', dengarCari);
+    return () => {
+      window.removeEventListener('popstate', bacaQuery);
+      window.removeEventListener('nutrikos-search', dengarCari);
+    };
+  }, []);
   const [mingguan, setMingguan] = useState(null);
   const [toast, setToast] = useState('');
 
@@ -82,6 +94,10 @@ export default function MenuPage() {
 
   const semua = useMemo(() => allowedRecipes(profile), [profile]);
 
+  useEffect(() => {
+    setHalaman(1);
+  }, [filter, q]);
+
   if (!ready) return null;
 
   // Filter resep
@@ -102,8 +118,17 @@ export default function MenuPage() {
   const total = nutrisiHarian.biaya;
   const hemat = Math.max(0, Math.round((1 - total / profile.budget) * 100));
 
-  // Pilihan resep lain untuk filter di halaman
-  const pilihan = semua.filter((r) => cocokFilter(r, filter) && !plan.includes(r.id) && (!q || r.nama.toLowerCase().includes(q)));
+  // Pilihan resep lain untuk filter di halaman (pencarian mencari nama, bahan, dan waktu makan)
+  const cocokCari = (r) =>
+    !q ||
+    r.nama.toLowerCase().includes(q) ||
+    (SLOT_LABEL[r.slot] || '').toLowerCase().includes(q) ||
+    r.bahan.some((b) => b.nama.toLowerCase().includes(q) || b.kunci.toLowerCase().includes(q));
+  const pilihan = semua.filter((r) => cocokFilter(r, filter) && (q ? cocokCari(r) : !plan.includes(r.id)));
+  const PER_HALAMAN = 6;
+  const totalHalaman = Math.max(1, Math.ceil(pilihan.length / PER_HALAMAN));
+  const halamanAman = Math.min(halaman, totalHalaman);
+  const pilihanTampil = pilihan.slice((halamanAman - 1) * PER_HALAMAN, halamanAman * PER_HALAMAN);
 
   // AI Recommendation
   const tanyaAI = async () => {
@@ -341,31 +366,86 @@ export default function MenuPage() {
 
           {/* Section: Pilihan Menu Lainnya */}
           <div className="space-y-3 pt-4 border-t border-slate-200">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 className="text-xl font-extrabold text-slate-800">Pilihan Menu Lainnya</h2>
+                <h2 className="text-xl font-extrabold text-slate-800">{q ? `Hasil Pencarian "${q}"` : 'Pilihan Menu Lainnya'}</h2>
                 <p className="text-xs text-slate-500">
-                  Ganti menu harianmu langsung dengan opsi lezat lainnya di bawah ini.
+                  {q ? `Menampilkan ${pilihan.length} resep yang cocok.` : 'Ganti menu harianmu langsung dengan opsi lezat lainnya di bawah ini.'}
                 </p>
               </div>
+              {q && (
+                <button
+                  onClick={() => { setQ(''); router.replace('/menu'); }}
+                  className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-100"
+                >
+                  <X size={14} /> Hapus pencarian
+                </button>
+              )}
             </div>
 
             {pilihan.length === 0 ? (
               <div className="card text-sm text-slate-600">Tidak ada menu lain untuk filter ini.</div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {pilihan.map((r) => (
-                  <RecipeCard
-                    key={r.id}
-                    recipe={r}
-                    aksiLabel="Pilih Menu"
-                    onAksi={() => {
-                      addRecipeToPlan(r.id);
-                      showToast(`✓ "${r.nama}" ditambahkan ke jadwal harian!`);
-                    }}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {pilihanTampil.map((r) => (
+                    <RecipeCard
+                      key={r.id}
+                      recipe={r}
+                      aksiLabel="Pilih Menu"
+                      onAksi={() => {
+                        addRecipeToPlan(r.id);
+                        showToast(`✓ "${r.nama}" ditambahkan ke jadwal harian!`);
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {totalHalaman > 1 && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <span className="text-xs font-semibold text-slate-500">
+                      Halaman {halamanAman} dari {totalHalaman} ({pilihan.length} menu)
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setHalaman((h) => Math.max(1, h - 1))}
+                        disabled={halamanAman === 1}
+                        aria-label="Halaman sebelumnya"
+                        className="inline-flex h-9 items-center gap-1 rounded-full bg-white px-3 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-40"
+                      >
+                        <ChevronLeft size={15} /> Sebelumnya
+                      </button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalHalaman }, (_, idx) => idx + 1).map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => setHalaman(n)}
+                            aria-current={n === halamanAman ? 'page' : undefined}
+                            className={`h-8 w-8 rounded-full text-xs font-bold transition-colors ${
+                              n === halamanAman
+                                ? 'bg-brand-dark text-white shadow-sm'
+                                : 'bg-white text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setHalaman((h) => Math.min(totalHalaman, h + 1))}
+                        disabled={halamanAman === totalHalaman}
+                        aria-label="Halaman berikutnya"
+                        className="inline-flex h-9 items-center gap-1 rounded-full bg-white px-3 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-40"
+                      >
+                        Berikutnya <ChevronRight size={15} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </>

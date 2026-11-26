@@ -6,7 +6,7 @@ import { useApp } from './AppProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Beranda', Icon: Home },
+  { href: '/beranda', label: 'Beranda', Icon: Home },
   { href: '/menu', label: 'Rekomendasi Menu', Icon: UtensilsCrossed },
   { href: '/bahan-sisa', label: 'Cek Bahan Sisa', Icon: Refrigerator },
   { href: '/belanja', label: 'Daftar Belanja', Icon: ShoppingBag },
@@ -17,7 +17,7 @@ const NAV_ITEMS = [
 
 function Logo() {
   return (
-    <Link href="/" className="flex items-center gap-3 px-6 pb-6 pt-6">
+    <Link href="/beranda" className="flex items-center gap-3 px-6 pb-6 pt-6">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo.png" alt="Logo NutriKos" className="h-10 w-10 rounded-xl bg-white object-contain p-1" />
       <span className="text-2xl font-extrabold tracking-tight text-white">NutriKos</span>
@@ -33,13 +33,13 @@ export default function Sidebar() {
     try { await supabaseBrowser().auth.signOut(); } catch (e) { /* tetap keluar di sisi aplikasi */ }
     reset(); // hapus data lokal agar tidak terlihat akun berikutnya di perangkat ini
     closeSidebar();
-    router.push('/login');
+    router.push('/');
     router.refresh();
   };
 
   const shoppingItems = getShoppingItems ? getShoppingItems() : [];
   const perluDibeli = shoppingItems.filter((x) => !x.sudahAda && !checked[x.nama]).length;
-  const aktif = (h) => (h === '/' ? path === '/' : path.startsWith(h));
+  const aktif = (h) => path === h || (h !== '/beranda' && path.startsWith(`${h}/`));
 
   const navContent = (
     <nav className="flex-1 space-y-1.5 pl-4 pr-0">

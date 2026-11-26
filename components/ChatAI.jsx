@@ -27,6 +27,24 @@ export default function ChatAI() {
   const akhirPesanRef = useRef(null);
 
   useEffect(() => {
+    setDaftarPesan([
+      {
+        pengirim: 'ai',
+        teks: `Eh ${namaDepan}! Ada yang bisa gue bantu? Mau cari ide masak dari bahan yang ada, ngitung bujet makan, atau butuh tips hemat lainnya? 🍳`,
+      },
+    ]);
+  }, [profile?.akunId]);
+
+  useEffect(() => {
+    setDaftarPesan((prev) => {
+      if (!prev.length || prev[0].pengirim !== 'ai') return prev;
+      const sapaan = `Eh ${namaDepan}! Ada yang bisa gue bantu? Mau cari ide masak dari bahan yang ada, ngitung bujet makan, atau butuh tips hemat lainnya? 🍳`;
+      if (prev[0].teks === sapaan) return prev;
+      return [{ ...prev[0], teks: sapaan }, ...prev.slice(1)];
+    });
+  }, [namaDepan]);
+
+  useEffect(() => {
     if (buka) {
       akhirPesanRef.current?.scrollIntoView({ behavior: 'smooth' });
     }

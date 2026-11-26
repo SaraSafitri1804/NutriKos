@@ -73,8 +73,8 @@ export default function ProfilSaya() {
             <div className="grid gap-4 md:grid-cols-2">
               <div><label className="label" htmlFor="nama">Nama lengkap</label><input id="nama" className="input" value={form.nama} onChange={(e) => ubah({ nama: e.target.value })} /></div>
               <div><label className="label" htmlFor="email">Email akun (untuk login)</label><input id="email" type="email" className="input bg-slate-100 text-slate-500" value={form.email} readOnly aria-readonly="true" /></div>
-              <div><label className="label" htmlFor="kampus">Asal kampus</label><input id="kampus" className="input" value={form.kampus} onChange={(e) => ubah({ kampus: e.target.value })} /></div>
-              <div><label className="label" htmlFor="prodi">Program studi</label><input id="prodi" className="input" value={form.prodi} onChange={(e) => ubah({ prodi: e.target.value })} /></div>
+              <div><label className="label" htmlFor="kampus">Asal kampus</label><input id="kampus" className="input" placeholder="contoh: Universitas Indonesia" value={form.kampus} onChange={(e) => ubah({ kampus: e.target.value })} /></div>
+              <div><label className="label" htmlFor="prodi">Program studi</label><input id="prodi" className="input" placeholder="contoh: Teknik Informatika" value={form.prodi} onChange={(e) => ubah({ prodi: e.target.value })} /></div>
               <div><label className="label" htmlFor="smt">Semester saat ini</label>
                 <select id="smt" className="input" value={form.semester} onChange={(e) => ubah({ semester: e.target.value })}>{[1, 2, 3, 4, 5, 6, 7, 8].map((s) => <option key={s} value={String(s)}>Semester {s}</option>)}</select></div>
             </div>

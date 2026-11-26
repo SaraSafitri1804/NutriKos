@@ -31,13 +31,14 @@ export default function ResetSandi() {
     e.preventDefault();
     setError('');
     if (sandi.length < SANDI_MIN) return setError(`Kata sandi minimal ${SANDI_MIN} karakter.`);
+    if (kuat.skor < 3) return setError('Kata sandi harus Kuat (kombinasi huruf besar, huruf kecil, angka, dan simbol atau min. 10 karakter dengan angka).');
     if (sandi !== ulang) return setError('Konfirmasi kata sandi tidak sama.');
     setLoading(true);
     const { error: err } = await supabaseBrowser().auth.updateUser({ password: sandi });
     if (err) { setError(terjemahError(err.message)); setLoading(false); return; }
     setSelesai(true);
     setLoading(false);
-    setTimeout(() => { router.push('/'); router.refresh(); }, 1500);
+    setTimeout(() => { router.push('/beranda'); router.refresh(); }, 1500);
   };
 
   if (status === 'memeriksa') return <AuthCard judul="Memeriksa tautan..."><p className="text-center text-sm text-slate-500">Mohon tunggu sebentar.</p></AuthCard>;

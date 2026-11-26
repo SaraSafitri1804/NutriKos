@@ -1,10 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
-// Halaman akun yang boleh dibuka tanpa login.
-const RUTE_AKUN = ['/mulai', '/login', '/register', '/lupa-sandi', '/reset-sandi'];
-// Halaman yang hanya untuk tamu: pengguna yang sudah login dialihkan ke Beranda.
-const HANYA_TAMU = ['/mulai', '/login', '/register'];
+// Halaman publik yang boleh dibuka tanpa login (termasuk landing page '/').
+const RUTE_AKUN = ['/', '/mulai', '/login', '/register', '/lupa-sandi', '/reset-sandi'];
 
 export async function middleware(request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -30,7 +28,9 @@ export async function middleware(request) {
   // Bawa cookie sesi yang diperbarui ke respons pengalihan.
   const alihkan = (tujuan) => {
     const res = NextResponse.redirect(tujuan);
-    response.cookies.getAll().forEach((c) => res.cookies.set(c));
+    response.cookies.getAll().forEach((c) => {
+      res.cookies.set(c.name, c.value, c);
+    });
     return res;
   };
 
@@ -38,19 +38,23 @@ export async function middleware(request) {
     if (!user) return NextResponse.json({ error: 'Silakan masuk terlebih dahulu.' }, { status: 401 });
     return response;
   }
+
+  // Jika pengunjung belum login mencoba membuka halaman aplikasi, arahkan ke login
   if (!user && !RUTE_AKUN.includes(path)) {
     const tujuan = request.nextUrl.clone();
-    // Pengunjung baru di halaman utama melihat halaman perkenalan; halaman lain meminta login.
-    tujuan.pathname = path === '/' ? '/mulai' : '/login';
-    tujuan.search = path === '/' ? '' : `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
+    tujuan.pathname = '/login';
+    tujuan.search = `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
     return alihkan(tujuan);
   }
-  if (user && HANYA_TAMU.includes(path)) {
+
+  // Jika pengguna SUDAH login membuka landing page ('/' atau '/mulai'), langsung bawa ke /beranda
+  if (user && (path === '/' || path === '/mulai')) {
     const tujuan = request.nextUrl.clone();
-    tujuan.pathname = '/';
+    tujuan.pathname = '/beranda';
     tujuan.search = '';
     return alihkan(tujuan);
   }
+
   return response;
 }
 

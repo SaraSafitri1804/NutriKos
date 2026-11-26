@@ -7,12 +7,11 @@ export function AuthCard({ badge, judul, deskripsi, children, lebar = 'max-w-md'
   return (
     <div className="flex min-h-screen flex-col items-center bg-surface px-4 py-10">
       <div className="mb-6 flex flex-col items-center text-center">
-        <Link href="/mulai" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="Logo NutriKos" className="h-11 w-11 rounded-xl bg-white object-contain p-1 shadow-sm" />
           <span className="text-2xl font-extrabold">NutriKos</span>
         </Link>
-        <p className="mt-2 text-xs text-slate-500">Nutrisi Cerdas &amp; Anggaran Sehat Mahasiswa Kos</p>
       </div>
       <div className={`w-full ${lebar} rounded-3xl bg-white p-6 shadow-lg sm:p-8`}>
         {badge && <div className="mb-3 text-center"><span className="inline-block rounded-full bg-success-light px-3 py-1 text-xs font-bold text-success-dark">{badge}</span></div>}
@@ -20,7 +19,7 @@ export function AuthCard({ badge, judul, deskripsi, children, lebar = 'max-w-md'
         {deskripsi && <p className="mt-2 text-center text-sm text-slate-500">{deskripsi}</p>}
         <div className="mt-6">{children}</div>
       </div>
-      <p className="mt-8 text-xs text-slate-400">© 2026 NutriKos · Tim CODIVA, UNUSIA</p>
+      <p className="mt-8 text-xs text-slate-400">© 2026 NutriKos</p>
     </div>
   );
 }

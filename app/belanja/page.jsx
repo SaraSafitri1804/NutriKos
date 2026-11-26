@@ -47,15 +47,24 @@ export default function BelanjaPage() {
   const [formKat, setFormKat] = useState('sayur');
   const [formError, setFormError] = useState('');
 
+  // Ambil daftar barang belanja terkini
+  const items = useMemo(() => (ready && getShoppingItems ? getShoppingItems() : []), [ready, getShoppingItems]);
+
+  // Kelompokkan per kategori yang teratur
+  const grupKategori = useMemo(() => {
+    return KATEGORI_KEYS.map((k) => ({
+      key: k,
+      label: KAT[k] || k,
+      list: items.filter((x) => x.kat === k),
+    }));
+  }, [items]);
+
   if (!ready) return null;
 
   const showToast = (pesan) => {
     setToast(pesan);
     setTimeout(() => setToast(''), 3000);
   };
-
-  // Ambil daftar barang belanja terkini
-  const items = getShoppingItems ? getShoppingItems() : [];
 
   // Filter & kalkulasi
   const perluBeli = items.filter((x) => !x.sudahAda);
@@ -73,15 +82,6 @@ export default function BelanjaPage() {
     ? Math.round((jumlahTerbeli / perluBeli.length) * 100)
     : 100;
   const sisaBujet = profile.budget - estimasiTotal;
-
-  // Kelompokkan per kategori yang teratur
-  const grupKategori = useMemo(() => {
-    return KATEGORI_KEYS.map((k) => ({
-      key: k,
-      label: KAT[k] || k,
-      list: items.filter((x) => x.kat === k),
-    }));
-  }, [items]);
 
   // Handler Buka Modal Edit
   const bukaModalEdit = (item) => {

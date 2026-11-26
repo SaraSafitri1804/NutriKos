@@ -20,7 +20,22 @@ const toggle = (arr, v) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...a
 export default function ProfilKos() {
   const { profile, setProfile, generatePlan, ready } = useApp();
   const [toast, setToast] = useState('');
+  const [alatBaru, setAlatBaru] = useState('');
   if (!ready) return null;
+
+  const semuaAlat = [...ALAT_OPTIONS, ...(profile.alat || []).filter((a) => !ALAT_OPTIONS.includes(a))];
+  const tambahAlat = (e) => {
+    e.preventDefault();
+    const nama = alatBaru.trim();
+    if (!nama) return;
+    const ada = semuaAlat.find((a) => a.toLowerCase() === nama.toLowerCase());
+    if (ada) {
+      if (!profile.alat.includes(ada)) setProfile({ alat: [...profile.alat, ada] });
+    } else {
+      setProfile({ alat: [...profile.alat, nama] });
+    }
+    setAlatBaru('');
+  };
 
   const cocok = allowedRecipes(profile).length;
   const T = targetGizi(profile);
@@ -36,14 +51,14 @@ export default function ProfilKos() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-extrabold sm:text-3xl">Profil Kos</h1>
           <p className="max-w-xl text-slate-600">Atur kondisi kos, alat masak, dan bujet harian agar rekomendasi menu lebih akurat.</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={reset} className="btn rounded-full bg-white shadow-sm"><RotateCcw size={16} /> Reset Pengaturan</button>
-          <button onClick={simpan} className="btn btn-primary rounded-full"><Save size={16} /> Simpan Perubahan</button>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <button onClick={reset} className="btn whitespace-nowrap rounded-full bg-white shadow-sm"><RotateCcw size={16} /> Reset Pengaturan</button>
+          <button onClick={simpan} className="btn btn-primary whitespace-nowrap rounded-full"><Save size={16} /> Simpan Perubahan</button>
         </div>
       </div>
 
@@ -59,7 +74,7 @@ export default function ProfilKos() {
             </div>
             <div>
               <label className="label" htmlFor="lokasi">Lokasi / area kos</label>
-              <div className="relative"><MapPin size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input id="lokasi" className="input !pl-9" value={profile.lokasi} onChange={(e) => setProfile({ lokasi: e.target.value })} /></div>
+              <div className="relative"><MapPin size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input id="lokasi" className="input !pl-9" placeholder="contoh: Dekat kampus, Kab. Bogor" value={profile.lokasi} onChange={(e) => setProfile({ lokasi: e.target.value })} /></div>
             </div>
             <div>
               <div className="label">Jenis kelamin <span className="font-medium normal-case text-slate-400">(dipakai menghitung target AKG)</span></div>
@@ -79,12 +94,12 @@ export default function ProfilKos() {
             <div className="flex flex-wrap items-center gap-3">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-success-light text-success-dark"><ChefHat size={20} /></span>
               <div className="flex-1"><h2 className="text-lg font-extrabold">Peralatan Memasak yang Tersedia</h2><p className="text-xs text-slate-500">NutriKos hanya merekomendasikan resep yang cocok dengan alatmu.</p></div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold">{profile.alat.length} dari {ALAT_OPTIONS.length} alat aktif</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold">{profile.alat.length} dari {semuaAlat.length} alat aktif</span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              {ALAT_OPTIONS.map((a) => {
+              {semuaAlat.map((a) => {
                 const on = profile.alat.includes(a);
-                const { Icon, ket } = ALAT_INFO[a] || { Icon: Utensils, ket: '' };
+                const { Icon, ket } = ALAT_INFO[a] || { Icon: Utensils, ket: 'Peralatan masak tambahan di kos.' };
                 return (
                   <button key={a} onClick={() => setProfile({ alat: toggle(profile.alat, a) })} aria-pressed={on} className={`relative rounded-2xl border-2 p-4 text-left transition-colors ${on ? 'border-brand-dark bg-brand-light' : 'border-transparent bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
                     <span className={`absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full ${on ? 'bg-brand-dark text-white' : 'bg-slate-200 text-slate-500'}`}>{on ? <Check size={14} /> : <Plus size={14} />}</span>
@@ -96,6 +111,18 @@ export default function ProfilKos() {
                 );
               })}
             </div>
+            <form onSubmit={tambahAlat} className="flex gap-2">
+              <input
+                value={alatBaru}
+                onChange={(e) => setAlatBaru(e.target.value)}
+                placeholder="Tambah alat masak lain (mis. Blender, Toaster)..."
+                aria-label="Tambah alat masak lain"
+                className="input flex-1"
+              />
+              <button type="submit" className="btn btn-primary whitespace-nowrap rounded-xl px-4">
+                <Plus size={16} /> Tambah
+              </button>
+            </form>
             <button onClick={() => setProfile({ alat: [] })} className={`w-full rounded-xl px-3 py-3 text-sm font-bold transition-colors ${profile.alat.length === 0 ? 'bg-brand-dark text-white' : 'bg-slate-100 hover:bg-slate-200'}`}>Tidak ada alat (hanya beli matang / warteg)</button>
           </section>
 
@@ -123,8 +150,15 @@ export default function ProfilKos() {
             </div>
             <div className="rounded-2xl bg-slate-50 p-4">
               <div className="text-xs text-slate-500">Bujet harian</div>
-              <div className="text-4xl font-extrabold">{rupiah(profile.budget)} <span className="text-sm font-medium text-slate-500">/ hari</span></div>
-              <div className="mt-1 text-xs text-slate-500">≈ {rupiah(profile.budget / 3)} per makan · {rupiah(profile.budget * 7)} per minggu</div>
+              <div className="mt-0.5 flex flex-wrap items-baseline gap-1.5">
+                <span className="text-2xl font-extrabold sm:text-3xl">{rupiah(profile.budget)}</span>
+                <span className="text-sm font-medium text-slate-500">/ hari</span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+                <span className="whitespace-nowrap">≈ {rupiah(profile.budget / 3)} / makan</span>
+                <span aria-hidden="true">·</span>
+                <span className="whitespace-nowrap">{rupiah(profile.budget * 7)} / minggu</span>
+              </div>
               <input type="range" min={10000} max={100000} step={1000} value={profile.budget} onChange={(e) => setProfile({ budget: Number(e.target.value) })} className="mt-4 w-full accent-brand-dark" aria-label="Bujet harian" />
               <div className="flex justify-between text-[11px] font-bold text-slate-500"><span>Rp 10.000</span><span>Rp 100.000</span></div>
             </div>
