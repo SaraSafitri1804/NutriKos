@@ -139,7 +139,7 @@ export default function Header() {
   const adaBelumDibaca = !sudahDibaca && notifikasi.length > 0;
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 w-full items-center gap-3 bg-surface/95 px-4 backdrop-blur sm:px-6 lg:px-8">
+    <header className="fixed top-0 left-0 right-0 lg:left-72 z-40 flex h-16 items-center gap-3 bg-surface/95 px-3.5 backdrop-blur sm:px-6 lg:px-8 border-b border-slate-200/60 shadow-xs">
       <button
         onClick={toggleSidebar}
         aria-label="Buka Menu Navigasi"

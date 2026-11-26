@@ -377,6 +377,29 @@ export default function MenuPage() {
                 })}
               </div>
             )}
+
+            {/* Ringkasan Estimasi Menu Terpilih (Inline Rapi & Tidak Mengambang Menutupi Layar) */}
+            {plan.length > 0 && (
+              <div className="card mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-gradient-to-r from-brand-light/80 to-brand-mint/40 border border-brand-mint/60 shadow-xs">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-dark text-white font-extrabold text-lg shadow-xs">
+                    {plan.length}
+                  </div>
+                  <div className="min-w-0 flex-1 sm:flex-initial">
+                    <div className="text-xs font-semibold text-slate-600">Estimasi Total Menu Terpilih ({plan.length} Menu)</div>
+                    <div className="text-xl font-extrabold text-brand-dark">{rupiah(total)}</div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={terapkan}
+                  className="btn btn-primary w-full sm:w-auto shadow-sm"
+                >
+                  <CalendarCheck2 size={18} /> Terapkan ke Jadwal &amp; Lihat Gizi
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Section: Pilihan Menu Lainnya */}
@@ -505,30 +528,6 @@ export default function MenuPage() {
           >
             <RefreshCw size={16} /> Acak Ulang Rencana Seminggu
           </button>
-        </div>
-      )}
-
-      {/* Floating Bottom Bar / Static Desktop Action */}
-      {mode === 'Harian' && plan.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-white/95 p-3.5 shadow-lg backdrop-blur lg:static lg:border-t-0 lg:p-0 lg:shadow-none lg:bg-transparent">
-          <div className="mx-auto flex max-w-5xl flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-light text-brand-dark font-extrabold">
-                {plan.length}
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-slate-500">Estimasi Total Menu Terpilih</div>
-                <div className="text-lg font-extrabold text-brand-dark">{rupiah(total)}</div>
-              </div>
-            </div>
-
-            <button
-              onClick={terapkan}
-              className="btn btn-primary w-full sm:w-auto shadow-sm"
-            >
-              <CalendarCheck2 size={18} /> Terapkan ke Jadwal & Lihat Gizi
-            </button>
-          </div>
         </div>
       )}
 
