@@ -154,9 +154,9 @@ export default function Header() {
             value={cari}
             onFocus={() => setBukaCari(true)}
             onChange={(e) => { setCari(e.target.value); setBukaCari(true); }}
-            placeholder="Cari menu, bahan, atau resep..."
+            placeholder="Cari menu / bahan..."
             aria-label="Cari menu"
-            className="w-full rounded-full border-0 bg-white py-2.5 pl-4 pr-16 text-sm shadow-sm outline-none focus:ring-2 focus:ring-brand/30"
+            className="w-full rounded-full border-0 bg-white py-2 pl-3.5 pr-14 text-xs sm:text-sm sm:py-2.5 sm:pl-4 sm:pr-16 shadow-sm outline-none focus:ring-2 focus:ring-brand/30"
           />
           {cari && (
             <button

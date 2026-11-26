@@ -261,7 +261,7 @@ export default function MenuPage() {
       {mode === 'Harian' ? (
         <>
           {/* Quick Filter Horizontal */}
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 sm:flex-wrap">
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 sm:flex-wrap scrollbar-hide">
             {FILTERS.map((f) => (
               <button
                 key={f}

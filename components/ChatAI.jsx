@@ -98,11 +98,20 @@ export default function ChatAI() {
         )}
       </div>
 
+      {/* Backdrop di Mobile saat chat terbuka */}
+      {buka && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs transition-opacity lg:hidden"
+          onClick={() => setBuka(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Chat Window Panel */}
       {buka && (
-        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex w-[calc(100vw-2rem)] sm:w-96 flex-col h-[520px] max-h-[85vh] rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed inset-x-0 bottom-0 top-12 sm:top-auto sm:inset-auto sm:bottom-6 sm:right-6 z-50 flex w-full sm:w-96 flex-col sm:h-[540px] sm:max-h-[85vh] rounded-t-[2rem] sm:rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-200">
           {/* Header */}
-          <div className="flex items-center justify-between bg-gradient-to-r from-brand-dark to-brand-deeper px-4 py-3.5 text-white">
+          <div className="flex items-center justify-between bg-gradient-to-r from-brand-dark to-brand-deeper px-4 py-3.5 text-white shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-accent backdrop-blur-xs">
                 <Bot size={22} />
@@ -120,13 +129,14 @@ export default function ChatAI() {
             <button
               onClick={() => setBuka(false)}
               className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:bg-white/20 hover:text-white transition-colors"
+              aria-label="Tutup Chat"
             >
-              <X size={18} />
+              <X size={20} />
             </button>
           </div>
 
           {/* Quick Prompt Chips */}
-          <div className="bg-slate-50 border-b border-slate-100 p-2 overflow-x-auto whitespace-nowrap scrollbar-hide">
+          <div className="bg-slate-50 border-b border-slate-100 p-2 overflow-x-auto whitespace-nowrap scrollbar-hide shrink-0">
             <div className="flex gap-1.5 text-[11px]">
               {CONTOH_PERTANYAAN.map((q, idx) => (
                 <button
@@ -186,7 +196,7 @@ export default function ChatAI() {
           </div>
 
           {/* Input Box */}
-          <div className="p-3 border-t border-slate-200 bg-white">
+          <div className="p-3 border-t border-slate-200 bg-white shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
