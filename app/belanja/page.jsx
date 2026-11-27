@@ -13,6 +13,10 @@ import {
   ShoppingBag,
   RotateCcw,
   CheckCircle2,
+  Wheat,
+  Beef,
+  Salad,
+  CookingPot,
 } from 'lucide-react';
 import { useApp } from '@/components/AppProvider';
 import { KAT, rupiah } from '@/lib/data';
@@ -445,11 +449,11 @@ export default function BelanjaPage() {
                   {/* Category Header */}
                   <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-light text-brand-dark text-sm font-extrabold">
-                        {grup.key === 'karbo' && '🍚'}
-                        {grup.key === 'protein' && '🥩'}
-                        {grup.key === 'sayur' && '🥬'}
-                        {grup.key === 'bumbu' && '🧂'}
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-light text-brand-dark">
+                        {grup.key === 'karbo' && <Wheat size={18} />}
+                        {grup.key === 'protein' && <Beef size={18} />}
+                        {grup.key === 'sayur' && <Salad size={18} />}
+                        {grup.key === 'bumbu' && <CookingPot size={18} />}
                       </div>
                       <div>
                         <h2 className="text-base font-extrabold text-slate-800">{grup.label}</h2>
