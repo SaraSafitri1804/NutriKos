@@ -20,11 +20,79 @@ export default function ResetSandi() {
   useEffect(() => {
     let batal = false;
     let supabase;
-    try { supabase = supabaseBrowser(); } catch { setStatus('tidak-valid'); return; }
-    // Tautan di email membawa kode yang ditukar otomatis menjadi sesi pemulihan.
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => { if (event === 'PASSWORD_RECOVERY' && !batal) setStatus('siap'); });
-    supabase.auth.getSession().then(({ data }) => { if (!batal) setStatus((s) => (data.session ? 'siap' : s === 'siap' ? s : 'tidak-valid')); });
-    return () => { batal = true; sub.subscription.unsubscribe(); };
+    try {
+      supabase = supabaseBrowser();
+    } catch {
+      setStatus('tidak-valid');
+      return;
+    }
+
+    const periksaToken = async () => {
+      if (typeof window === 'undefined') return;
+
+      const hash = window.location.hash || '';
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+
+      // 1. Cek bila Supabase melaporkan error di URL hash/query
+      if (hash.includes('error=') || params.get('error')) {
+        const errorDesc = params.get('error_description') || 'Tautan reset kata sandi ini sudah kedaluwarsa atau tidak benar.';
+        if (!batal) {
+          setError(decodeURIComponent(errorDesc.replace(/\+/g, ' ')));
+          setStatus('tidak-valid');
+        }
+        return;
+      }
+
+      // 2. Jika tautan memakai alur PKCE (ada ?code=...)
+      if (code) {
+        try {
+          const { data, error: errCode } = await supabase.auth.exchangeCodeForSession(code);
+          if (!errCode && data?.session) {
+            if (!batal) setStatus('siap');
+            return;
+          }
+        } catch (e) {
+          console.error('Gagal exchange code:', e);
+        }
+      }
+
+      // 3. Cek apakah sesi pemulihan sudah aktif
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && !batal) {
+        setStatus('siap');
+        return;
+      }
+
+      // 4. Pasang listener Auth State Change untuk event PASSWORD_RECOVERY
+      const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+        if ((event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && s)) && !batal) {
+          setStatus('siap');
+        }
+      });
+
+      // 5. Beri waktu tunggu 3 detik untuk pertukaran token sebelum menyatakan tidak valid
+      const timeout = setTimeout(() => {
+        if (!batal) {
+          setStatus((current) => (current === 'memeriksa' ? 'tidak-valid' : current));
+        }
+      }, 3000);
+
+      return () => {
+        sub?.subscription?.unsubscribe();
+        clearTimeout(timeout);
+      };
+    };
+
+    let cleanupFn;
+    periksaToken().then((clean) => {
+      cleanupFn = clean;
+    });
+
+    return () => {
+      batal = true;
+      if (cleanupFn) cleanupFn();
+    };
   }, []);
 
   const simpan = async (e) => {
@@ -44,7 +112,7 @@ export default function ResetSandi() {
   if (status === 'memeriksa') return <AuthCard judul="Memeriksa tautan..."><p className="text-center text-sm text-slate-500">Mohon tunggu sebentar.</p></AuthCard>;
   if (status === 'tidak-valid') {
     return (
-      <AuthCard judul="Tautan Tidak Valid" deskripsi="Tautan reset kata sandi ini sudah kedaluwarsa atau tidak benar. Minta tautan baru.">
+      <AuthCard judul="Tautan Tidak Valid" deskripsi={error || "Tautan reset kata sandi ini sudah kedaluwarsa atau tidak benar. Minta tautan baru."}>
         <Link href="/lupa-sandi" className="btn btn-primary w-full rounded-full py-3.5">Minta Tautan Baru</Link>
       </AuthCard>
     );
