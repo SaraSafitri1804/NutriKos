@@ -1,5 +1,5 @@
 ﻿'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Share2,
   ShoppingCart,
@@ -40,6 +40,13 @@ export default function BelanjaPage() {
   const [itemAktif, setItemAktif] = useState(null);
   const [toast, setToast] = useState('');
   const [filterStatus, setFilterStatus] = useState('semua'); // 'semua' | 'perlu' | 'terbeli' | 'ada'
+
+  // Kunci scroll body saat ada modal terbuka
+  const adaModal = modalEditOpen || modalTambahOpen || modalHapusOpen;
+  useEffect(() => {
+    document.body.style.overflow = adaModal ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [adaModal]);
 
   // Form states
   const [formNama, setFormNama] = useState('');
@@ -570,7 +577,7 @@ export default function BelanjaPage() {
 
       {/* MODAL 1: EDIT ITEM BELANJA */}
       {modalEditOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto p-4 pt-16 sm:pt-20">
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setModalEditOpen(false)}
@@ -683,7 +690,7 @@ export default function BelanjaPage() {
 
       {/* MODAL 2: TAMBAH BARANG BARU */}
       {modalTambahOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto p-4 pt-16 sm:pt-20">
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setModalTambahOpen(false)}
@@ -798,7 +805,7 @@ export default function BelanjaPage() {
 
       {/* MODAL 3: KONFIRMASI HAPUS */}
       {modalHapusOpen && itemAktif && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto p-4 pt-16 sm:pt-20">
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setModalHapusOpen(false)}
@@ -834,4 +841,5 @@ export default function BelanjaPage() {
     </div>
   );
 }
+
 
