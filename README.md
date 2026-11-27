@@ -58,7 +58,7 @@ Mahasiswa perantau sering kali menghadapi kendala dalam menjaga pola makan sehat
 
 ### 8. 🤖 Asisten Konsultan Gizi "Tanya AI" (Gemini AI)
 - Chatbot interaktif ramah mahasiswa yang menyapa pengguna dengan nama panggilan mereka.
-- Menggunakan model Google Gemini (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-flash-latest`) dengan *fallback rule-based* otomatis.
+- Menggunakan model Google Gemini (`gemini-3.5-flash`, `gemini-flash-lite-latest`, `gemini-3.8-flash`) dengan *fallback rule-based* otomatis.
 - Mendukung pemahaman bahasa santai, pemilihan menu bernomor (*"mau yang no 2"*), dan negasi bahan (*"ga punya udang"*).
 - Tampilan responsif berupa *Bottom Sheet Drawer* elegan di HP dan kartu melayang di desktop.
 

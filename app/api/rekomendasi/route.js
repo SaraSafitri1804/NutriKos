@@ -82,16 +82,18 @@ Balas sebagai NutriKos AI. Langsung jawab tanpa nulis "NutriKos AI:" di depannya
 async function panggilAI(prompt) {
   const key = process.env.GEMINI_API_KEY?.trim();
   if (key) {
-    // Model resmi yang aktif dan didukung untuk API key Gemini baru
-    const models = [
-      process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash',
-      'gemini-2.0-flash',
-      'gemini-flash-latest',
-    ];
+    // Model resmi yang aktif dan terverifikasi untuk API key Gemini baru (prefix AQ. / AIza)
+    const models = [...new Set([
+      process.env.GEMINI_MODEL?.trim(),
+      'gemini-3.5-flash',
+      'gemini-flash-lite-latest',
+      'gemini-3.1-flash-lite',
+      'gemini-3.8-flash',
+    ].filter(Boolean))];
 
     for (const model of models) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
         const r = await fetch(url, {
           method: 'POST',
           headers: {
@@ -104,12 +106,15 @@ async function panggilAI(prompt) {
               temperature: 0.7,
             },
           }),
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(12000),
         });
 
         if (r.ok) {
           const j = await r.json();
-          const text = j.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '';
+          const text = j.candidates?.[0]?.content?.parts
+            ?.filter((p) => !p.thought)
+            .map((p) => p.text || '')
+            .join('') || '';
           if (text) {
             console.log(`[NutriKos AI] Sukses memanggil model: ${model}`);
             return text;
