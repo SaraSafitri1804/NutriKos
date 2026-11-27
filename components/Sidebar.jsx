@@ -36,13 +36,11 @@ export default function Sidebar() {
     const handleEsc = (e) => {
       if (e.key === 'Escape') closeSidebar();
     };
-    if (isSidebarOpen) {
-      document.addEventListener('keydown', handleEsc);
-      document.body.style.overflow = 'hidden';
-    }
+    document.addEventListener('keydown', handleEsc);
+    // Set/clear overflow berdasarkan state sidebar (bukan di cleanup)
+    document.body.style.overflow = isSidebarOpen ? 'hidden' : '';
     return () => {
       document.removeEventListener('keydown', handleEsc);
-      document.body.style.overflow = '';
     };
   }, [isSidebarOpen, closeSidebar]);
 

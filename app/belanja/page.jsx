@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useMemo } from 'react';
 import {
   Share2,
@@ -131,7 +131,7 @@ export default function BelanjaPage() {
 
     setModalEditOpen(false);
     setItemAktif(null);
-    showToast(`✓ Perubahan "${formNama.trim()}" berhasil disimpan!`);
+    showToast(`âœ“ Perubahan "${formNama.trim()}" berhasil disimpan!`);
   };
 
   // Handler Buka Modal Tambah
@@ -166,7 +166,7 @@ export default function BelanjaPage() {
     });
 
     setModalTambahOpen(false);
-    showToast(`✓ "${formNama.trim()}" berhasil ditambahkan ke daftar belanja!`);
+    showToast(`âœ“ "${formNama.trim()}" berhasil ditambahkan ke daftar belanja!`);
   };
 
   // Handler Hapus Item
@@ -186,21 +186,21 @@ export default function BelanjaPage() {
   // Bagikan ke WA / Clipboard
   const bagikan = async () => {
     const teks =
-      '🛒 *Daftar Belanja NutriKos*\n' +
+      'ðŸ›’ *Daftar Belanja NutriKos*\n' +
       perluBeli
         .map((x) => {
-          const status = checked[x.nama] ? '✅' : '◻️';
+          const status = checked[x.nama] ? 'âœ…' : 'â—»ï¸';
           return `${status} ${x.nama} (${x.qty}) - ${rupiah(x.harga)}`;
         })
         .join('\n') +
-      `\n\n💰 *Total Estimasi:* ${rupiah(estimasiTotal)} (Bujet: ${rupiah(profile.budget)})`;
+      `\n\nðŸ’° *Total Estimasi:* ${rupiah(estimasiTotal)} (Bujet: ${rupiah(profile.budget)})`;
 
     try {
       if (navigator.share) {
         await navigator.share({ text: teks });
       } else {
         await navigator.clipboard.writeText(teks);
-        showToast('✓ Daftar belanja disalin ke clipboard.');
+        showToast('âœ“ Daftar belanja disalin ke clipboard.');
       }
     } catch (e) {}
   };
@@ -295,12 +295,12 @@ export default function BelanjaPage() {
         <button
           type="button"
           onClick={() => {
-            showToast('💡 Tips: Belanja sayur di pasar subuh (05:00 - 07:00) atau warung terdekat biasanya hemat 30-50% dibanding minimarket/supermarket!');
+            showToast('ðŸ’¡ Tips: Belanja sayur di pasar subuh (05:00 - 07:00) atau warung terdekat biasanya hemat 30-50% dibanding minimarket/supermarket!');
           }}
           className="rounded-full bg-accent-light px-3 py-1.5 text-amber-900 hover:bg-amber-100 transition-colors cursor-pointer"
           title="Klik untuk melihat tips belanja hemat"
         >
-          💡 Rekomendasi: Belanja di Warung / Pasar Subuh
+          ðŸ’¡ Rekomendasi: Belanja di Warung / Pasar Subuh
         </button>
       </div>
 
@@ -358,7 +358,7 @@ export default function BelanjaPage() {
         <div className="pt-4 space-y-2">
           <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
             <span>Alokasi Bujet Terpakai: {persenBudget}%</span>
-            <span>{estimasiTotal > profile.budget ? '⚠️ Melebihi target' : '✓ Dalam target'}</span>
+            <span>{estimasiTotal > profile.budget ? 'âš ï¸ Melebihi target' : 'âœ“ Dalam target'}</span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
             <div
@@ -439,10 +439,10 @@ export default function BelanjaPage() {
                   <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
                     <div className="flex items-center gap-2">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-light text-brand-dark text-sm font-extrabold">
-                        {grup.key === 'karbo' && '🍚'}
-                        {grup.key === 'protein' && '🥩'}
-                        {grup.key === 'sayur' && '🥬'}
-                        {grup.key === 'bumbu' && '🧂'}
+                        {grup.key === 'karbo' && 'ðŸš'}
+                        {grup.key === 'protein' && 'ðŸ¥©'}
+                        {grup.key === 'sayur' && 'ðŸ¥¬'}
+                        {grup.key === 'bumbu' && 'ðŸ§‚'}
                       </div>
                       <div>
                         <h2 className="text-base font-extrabold text-slate-800">{grup.label}</h2>
@@ -515,9 +515,9 @@ export default function BelanjaPage() {
                             <div className="text-xs text-slate-500 mt-0.5">
                               <span className="font-semibold text-slate-600">{item.qty}</span>
                               {item.sudahAda ? (
-                                <span className="text-brand-dark font-medium"> • Tersedia di kos</span>
+                                <span className="text-brand-dark font-medium"> â€¢ Tersedia di kos</span>
                               ) : (
-                                <span> • {item.untuk || 'Kebutuhan Dapur'}</span>
+                                <span> â€¢ {item.untuk || 'Kebutuhan Dapur'}</span>
                               )}
                             </div>
                           </div>
@@ -570,7 +570,7 @@ export default function BelanjaPage() {
 
       {/* MODAL 1: EDIT ITEM BELANJA */}
       {modalEditOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setModalEditOpen(false)}
@@ -683,7 +683,7 @@ export default function BelanjaPage() {
 
       {/* MODAL 2: TAMBAH BARANG BARU */}
       {modalTambahOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setModalTambahOpen(false)}
@@ -798,7 +798,7 @@ export default function BelanjaPage() {
 
       {/* MODAL 3: KONFIRMASI HAPUS */}
       {modalHapusOpen && itemAktif && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setModalHapusOpen(false)}
@@ -834,3 +834,4 @@ export default function BelanjaPage() {
     </div>
   );
 }
+
