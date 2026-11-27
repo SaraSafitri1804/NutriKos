@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { Home, UtensilsCrossed, ShoppingBag, HeartPulse, User, Settings, Refrigerator, X, LogOut } from 'lucide-react';
 import { useApp } from './AppProvider';
 import { supabaseBrowser } from '@/lib/supabase/client';
@@ -15,9 +16,9 @@ const NAV_ITEMS = [
   { href: '/profil', label: 'Profil Saya', Icon: User },
 ];
 
-function Logo() {
+function Logo({ onClick }) {
   return (
-    <Link href="/beranda" className="flex items-center gap-3 px-6 pb-6 pt-6">
+    <Link href="/beranda" onClick={onClick} className="flex items-center gap-3 px-6 pb-6 pt-6">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo.png" alt="Logo NutriKos" className="h-10 w-10 rounded-xl bg-white object-contain p-1" />
       <span className="text-2xl font-extrabold tracking-tight text-white">NutriKos</span>
@@ -29,6 +30,22 @@ export default function Sidebar() {
   const path = usePathname();
   const router = useRouter();
   const { getShoppingItems, checked, isSidebarOpen, closeSidebar, reset } = useApp();
+
+  // Tangani tombol Escape dan kunci scroll background saat drawer sidebar terbuka
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') closeSidebar();
+    };
+    if (isSidebarOpen) {
+      document.addEventListener('keydown', handleEsc);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = '';
+    };
+  }, [isSidebarOpen, closeSidebar]);
+
   const keluar = async () => {
     try { await supabaseBrowser().auth.signOut(); } catch (e) { /* tetap keluar di sisi aplikasi */ }
     reset(); // hapus data lokal agar tidak terlihat akun berikutnya di perangkat ini
@@ -69,7 +86,7 @@ export default function Sidebar() {
 
   const footer = (
     <div className="space-y-3 p-5">
-      <button onClick={keluar} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-white/85 transition-colors hover:bg-white/10 hover:text-white">
+      <button onClick={keluar} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-white/85 transition-colors hover:bg-white/10 hover:text-white cursor-pointer">
         <LogOut size={19} /> Log Out
       </button>
       <div className="text-center text-[11px] text-white/60">NutriKos v2.0 · Pola Makan Sehat &amp; Hemat</div>
@@ -77,28 +94,40 @@ export default function Sidebar() {
   );
 
   return (
-    <>
-      {/* Desktop: sidebar biru setinggi layar dan selalu tetap di posisi (fixed) saat halaman di-scroll */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:h-screen lg:w-72 lg:shrink-0 lg:flex-col lg:overflow-y-auto lg:rounded-br-[3rem] lg:bg-brand-dark shadow-sm">
-        <Logo />
+    <div
+      className={`fixed inset-0 z-50 transition-all duration-300 ${
+        isSidebarOpen ? 'visible opacity-100 pointer-events-auto' : 'invisible opacity-0 pointer-events-none'
+      }`}
+      aria-hidden={!isSidebarOpen}
+    >
+      {/* Backdrop redup blur */}
+      <div
+        className={`fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity duration-300 ${
+          isSidebarOpen ? 'opacity-100' : 'opacity-0'
+        }`}
+        onClick={closeSidebar}
+        aria-hidden="true"
+      />
+
+      {/* Panel Drawer Sidebar yang meluncur dari kiri dengan animasi */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 sm:w-80 flex-col overflow-y-auto rounded-r-3xl sm:rounded-r-[2.5rem] bg-brand-dark shadow-2xl transition-transform duration-300 ease-out ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        role="dialog"
+        aria-label="Menu Navigasi NutriKos"
+      >
+        <button
+          onClick={closeSidebar}
+          aria-label="Tutup menu"
+          className="absolute right-4 top-5 flex h-9 w-9 items-center justify-center rounded-xl text-white/80 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+        >
+          <X size={20} />
+        </button>
+        <Logo onClick={closeSidebar} />
         {navContent}
         {footer}
       </aside>
-
-      {/* Mobile: drawer */}
-      {isSidebarOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="fixed inset-0 bg-slate-900/50" onClick={closeSidebar} aria-hidden="true" />
-          <aside className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col overflow-y-auto rounded-br-[3rem] bg-brand-dark shadow-2xl">
-            <button onClick={closeSidebar} aria-label="Tutup menu" className="absolute right-4 top-5 flex h-9 w-9 items-center justify-center rounded-lg text-white/80 hover:bg-white/10">
-              <X size={20} />
-            </button>
-            <Logo />
-            {navContent}
-            {footer}
-          </aside>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

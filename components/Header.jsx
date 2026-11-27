@@ -139,14 +139,27 @@ export default function Header() {
   const adaBelumDibaca = !sudahDibaca && notifikasi.length > 0;
 
   return (
-    <header className="fixed top-0 left-0 right-0 lg:left-72 z-40 flex h-16 items-center gap-3 bg-surface/95 px-3.5 backdrop-blur sm:px-6 lg:px-8 border-b border-slate-200/60 shadow-xs">
-      <button
-        onClick={toggleSidebar}
-        aria-label="Buka Menu Navigasi"
-        className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 hover:bg-white lg:hidden"
-      >
-        <Menu size={22} />
-      </button>
+    <header className="fixed top-0 left-0 right-0 z-40 flex h-16 items-center gap-2.5 sm:gap-3.5 bg-surface/95 px-3.5 backdrop-blur sm:px-6 lg:px-8 border-b border-slate-200/60 shadow-xs">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <button
+          onClick={toggleSidebar}
+          aria-label="Buka Menu Navigasi"
+          title="Buka Menu"
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-700 shadow-xs hover:bg-brand-light hover:text-brand-dark transition-all cursor-pointer"
+        >
+          <Menu size={20} />
+        </button>
+
+        <Link
+          href="/beranda"
+          className="flex items-center gap-2 font-extrabold text-brand-dark tracking-tight shrink-0 mr-1 sm:mr-2"
+          title="Halaman Beranda NutriKos"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="NutriKos" className="h-8 w-8 rounded-lg object-contain bg-brand-light/50 p-0.5" />
+          <span className="hidden sm:inline text-lg font-extrabold text-brand-dark">NutriKos</span>
+        </Link>
+      </div>
 
       <div ref={cariRef} className="relative flex-1 min-w-0 max-w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl">
         <form onSubmit={kirim} className="relative">
