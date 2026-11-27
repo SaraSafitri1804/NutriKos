@@ -1,13 +1,22 @@
 'use client';
 import Link from 'next/link';
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Flame, Beef, Wheat, Salad, SlidersHorizontal, AlertTriangle, CheckCircle2, Wallet, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Flame, Beef, Wheat, Salad, SlidersHorizontal, AlertTriangle, CheckCircle2, Wallet, Info, Calendar } from 'lucide-react';
 import { useApp, kunciTanggal } from '@/components/AppProvider';
 import Ring from '@/components/Ring';
 import { nutrisiDari } from '@/lib/recommend';
 import { getRecipe, rupiah, targetGizi, SLOT_LABEL } from '@/lib/data';
 
 const HARI = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+const NAMA_LENGKAP_HARI = {
+  Sen: 'Senin',
+  Sel: 'Selasa',
+  Rab: 'Rabu',
+  Kam: 'Kamis',
+  Jum: 'Jumat',
+  Sab: 'Sabtu',
+  Min: 'Minggu',
+};
 const NOL = { protein: 0, serat: 0, karbo: 0, kalori: 0, biaya: 0 };
 
 // Ambang skor mengikuti proposal (Bab 3.6): Cukup >= 80, Perlu Ditingkatkan 50-79, Kurang < 50.
@@ -33,6 +42,8 @@ function StatCard({ Icon, judul, nilai, satuan, target, persen }) {
 export default function Gizi() {
   const { profile, plan, log, logToday, customPlanDetails, ready } = useApp();
   const [offset, setOffset] = useState(0); // 0 = minggu ini, -1 = minggu lalu, dst.
+  const [terpilihKey, setTerpilihKey] = useState(null);
+
   if (!ready) return null;
 
   const T = targetGizi(profile);
@@ -48,8 +59,22 @@ export default function Gizi() {
     const adalahHariIni = key === kunciHariIni;
     const ids = adalahHariIni ? plan : log?.[key] || [];
     const n = ids.length ? nutrisiDari(ids, adalahHariIni ? customPlanDetails : {}) : NOL;
-    return { key, nama, tgl: d.getDate(), ada: ids.length > 0, n, hariIni: adalahHariIni, tercatat: !!log?.[key] };
+    const tanggalFormat = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    return {
+      key,
+      nama,
+      namaLengkap: NAMA_LENGKAP_HARI[nama] || nama,
+      tgl: d.getDate(),
+      tanggalFormat,
+      dateObj: d,
+      ada: ids.length > 0,
+      n,
+      ids,
+      hariIni: adalahHariIni,
+      tercatat: !!log?.[key],
+    };
   });
+
   const aktif = hari.filter((h) => h.ada);
   const jml = aktif.length;
   const rata = (k) => (jml ? Math.round(aktif.reduce((s, h) => s + h.n[k], 0) / jml) : 0);
@@ -73,23 +98,69 @@ export default function Gizi() {
 
   const kurangSerat = p.serat < 80;
   const kurangProtein = p.protein < 80;
-  const tercatatHariIni = !!log?.[kunciHariIni];
+
+  // Hari yang sedang dipilih untuk melihat detail gizi & menunya (default: hari ini jika ada di minggu ini, atau hari pertama)
+  const hariAktif = hari.find((h) => h.key === (terpilihKey || kunciHariIni)) || hari[0];
 
   return (
     <div className="space-y-6">
-      {/* Judul */}
+      {/* Judul & Navigasi Tanggal */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-extrabold sm:text-3xl">Gizi Mingguan</h1>
           <p className="text-slate-600">Pantau kebutuhan kalori dan keseimbangan nutrisimu selama seminggu.</p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-nowrap">
-          <div className="flex items-center gap-1 whitespace-nowrap rounded-full bg-white px-2 py-1.5 text-sm font-bold shadow-sm">
-            <button aria-label="Minggu sebelumnya" onClick={() => setOffset(offset - 1)} className="rounded-full p-1 hover:bg-slate-100"><ChevronLeft size={16} /></button>
-            <span className="px-1">{rentang}</span>
-            <button aria-label="Minggu berikutnya" disabled={offset >= 0} onClick={() => setOffset(offset + 1)} className="rounded-full p-1 hover:bg-slate-100 disabled:opacity-30"><ChevronRight size={16} /></button>
+          {/* Kontrol Navigasi Rentang Minggu */}
+          <div className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-2.5 py-1.5 text-sm font-bold shadow-sm border border-slate-100">
+            <button
+              aria-label="Minggu sebelumnya"
+              onClick={() => setOffset((o) => o - 1)}
+              className="rounded-full p-1 hover:bg-slate-100 transition-colors cursor-pointer"
+              title="Minggu Sebelumnya"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="px-1 font-extrabold text-slate-800">{rentang}</span>
+            <button
+              aria-label="Minggu berikutnya"
+              disabled={offset >= 0}
+              onClick={() => setOffset((o) => o + 1)}
+              className="rounded-full p-1 hover:bg-slate-100 disabled:opacity-30 transition-colors cursor-pointer"
+              title="Minggu Berikutnya"
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
-          <Link href="/profil-kos" className="btn btn-primary whitespace-nowrap"><SlidersHorizontal size={16} /> Atur Target Gizi</Link>
+
+          {/* Pemilih Tanggal Kalender (Date Picker) */}
+          <div className="relative">
+            <input
+              type="date"
+              id="date-picker-gizi"
+              className="sr-only"
+              onChange={(e) => {
+                if (!e.target.value) return;
+                const [thn, bln, tgl] = e.target.value.split('-').map(Number);
+                const dipilih = new Date(thn, bln - 1, tgl);
+                const diffTime = dipilih.getTime() - sekarang.getTime();
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                const targetOffset = Math.floor((diffDays + idxHariIni) / 7);
+                setOffset(targetOffset);
+                setTerpilihKey(e.target.value);
+              }}
+            />
+            <label
+              htmlFor="date-picker-gizi"
+              className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors cursor-pointer border border-slate-200/80"
+              title="Klik untuk memilih tanggal dari kalender"
+            >
+              <Calendar size={14} className="text-brand-dark" />
+              <span>Pilih Tanggal</span>
+            </label>
+          </div>
+
+          <Link href="/profil-kos" className="btn btn-primary whitespace-nowrap !py-2"><SlidersHorizontal size={16} /> Atur Target Gizi</Link>
         </div>
       </div>
 
@@ -106,31 +177,94 @@ export default function Gizi() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">
-        {/* Tren kalori */}
+        {/* Tren kalori - Tanggal dan Bar Sekarang Interaktif & Bisa Diklik */}
         <section className="card p-5 xl:col-span-2">
-          <div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-extrabold">Tren Kalori Harian</h2><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Senin – Minggu</span></div>
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-extrabold text-slate-800">Tren Kalori Harian</h2>
+              <p className="text-xs text-slate-500">Klik tanggal/batang grafik di bawah untuk melihat rincian makanan hari itu.</p>
+            </div>
+            <span className="rounded-full bg-brand-light px-3 py-1 text-xs font-extrabold text-brand-dark">
+              {hariAktif.namaLengkap}, {hariAktif.tgl} terpilih
+            </span>
+          </div>
+
           <div className="text-3xl font-extrabold">{totalKalori.toLocaleString('id-ID')} <span className="text-lg font-medium text-slate-500">kkal</span></div>
           <p className="text-xs text-slate-500">Rata-rata {avg.kalori.toLocaleString('id-ID')} kkal/hari dari target {T.kalori.toLocaleString('id-ID')} kkal/hari ({jml} hari tercatat).</p>
-          <div className="mt-5 h-52 rounded-2xl bg-slate-50 px-3 pb-8 pt-5">
-            <div className="relative flex h-full gap-3">
-              <div className="pointer-events-none absolute inset-x-0 border-t border-dashed border-slate-400" style={{ bottom: `${garisTarget}%` }}>
-                <span className="absolute -top-4 right-0 text-[10px] text-slate-500">Target {T.kalori.toLocaleString('id-ID')} kkal</span>
+
+          {/* Area Grafik Bar Interaktif */}
+          <div className="mt-5 h-56 rounded-2xl bg-slate-50 px-2 sm:px-4 pb-8 pt-5">
+            <div className="relative flex h-full gap-1.5 sm:gap-3">
+              <div className="pointer-events-none absolute inset-x-0 border-t border-dashed border-slate-400 z-10" style={{ bottom: `${garisTarget}%` }}>
+                <span className="absolute -top-4 right-0 text-[10px] text-slate-500 bg-slate-50/80 px-1 rounded">Target {T.kalori.toLocaleString('id-ID')} kkal</span>
               </div>
               {hari.map((h) => {
                 const tinggi = h.ada ? (h.n.kalori / maksBar) * 100 : 0;
+                const isSelected = h.key === hariAktif.key;
                 return (
-                  <div key={h.key} className="relative h-full flex-1">
-                    <div className={`absolute inset-x-0 bottom-0 rounded-t-lg ${h.ada ? (h.hariIni ? 'bg-brand-dark' : 'bg-brand-mint') : 'bg-slate-200'}`} style={{ height: h.ada ? `${tinggi}%` : '4px' }} title={h.ada ? `${h.n.kalori} kkal` : 'Belum ada data'} />
-                    {h.ada && <span className="absolute inset-x-0 text-center text-[10px] font-bold text-slate-600" style={{ bottom: `calc(${tinggi}% + 2px)` }}>{h.n.kalori.toLocaleString('id-ID')}</span>}
-                    <span className={`absolute inset-x-0 -bottom-6 text-center text-[11px] ${h.hariIni ? 'font-extrabold text-brand-dark' : 'text-slate-500'}`}>{h.nama}</span>
-                  </div>
+                  <button
+                    key={h.key}
+                    type="button"
+                    onClick={() => setTerpilihKey(h.key)}
+                    className={`relative h-full flex-1 flex flex-col justify-end items-center rounded-xl transition-all cursor-pointer p-1 group outline-none ${
+                      isSelected
+                        ? 'bg-brand-light/70 ring-2 ring-brand-dark shadow-xs'
+                        : 'hover:bg-slate-200/50'
+                    }`}
+                    title={`Klik untuk melihat detail ${h.namaLengkap}, ${h.tanggalFormat} (${h.ada ? h.n.kalori + ' kkal' : 'Belum ada data'})`}
+                  >
+                    {/* Nilai kalori di atas batang */}
+                    {h.ada && (
+                      <span className={`text-[10px] mb-1 transition-all ${
+                        isSelected ? 'font-black text-brand-dark scale-105' : 'font-bold text-slate-600'
+                      }`}>
+                        {h.n.kalori.toLocaleString('id-ID')}
+                      </span>
+                    )}
+
+                    {/* Batang Bar */}
+                    <div className="w-full flex-1 flex flex-col justify-end items-center">
+                      <div
+                        className={`w-full max-w-[2.4rem] rounded-t-lg transition-all ${
+                          h.ada
+                            ? isSelected
+                              ? 'bg-brand-dark shadow-sm'
+                              : h.hariIni
+                              ? 'bg-brand-dark/85'
+                              : 'bg-brand-mint group-hover:bg-brand-mint/80'
+                            : 'bg-slate-200'
+                        }`}
+                        style={{ height: h.ada ? `${tinggi}%` : '6px' }}
+                      />
+                    </div>
+
+                    {/* Nama Hari & Nomor Tanggal di Bawah */}
+                    <div className="mt-2 text-center">
+                      <span className={`block text-[11px] leading-tight ${
+                        isSelected ? 'font-extrabold text-brand-dark' : h.hariIni ? 'font-bold text-brand-dark' : 'text-slate-600 font-medium'
+                      }`}>
+                        {h.nama}
+                      </span>
+                      <span className={`block text-[10px] leading-tight ${
+                        isSelected ? 'font-black text-brand-dark' : 'text-slate-400 font-medium'
+                      }`}>
+                        {h.tgl}
+                      </span>
+                    </div>
+
+                    {/* Dot Indikator Terpilih */}
+                    {isSelected && (
+                      <span className="absolute -top-1.5 h-2.5 w-2.5 rounded-full bg-brand-dark ring-2 ring-white shadow-xs animate-in zoom-in-50 duration-150" />
+                    )}
+                  </button>
                 );
               })}
             </div>
           </div>
+
           <div className="mt-4 space-y-1.5 rounded-xl bg-slate-50 p-3 text-xs">
-            {hariTerdekat && <div className="flex items-center gap-2"><CheckCircle2 size={15} className="text-success" /> <span><b>Paling mendekati target:</b> {hariTerdekat.nama} ({hariTerdekat.n.kalori.toLocaleString('id-ID')} kkal)</span></div>}
-            {hariTerendah && <div className="flex items-center gap-2"><AlertTriangle size={15} className="text-accent" /> <span><b>Asupan terendah:</b> {hariTerendah.nama} ({hariTerendah.n.kalori.toLocaleString('id-ID')} kkal)</span></div>}
+            {hariTerdekat && <div className="flex items-center gap-2"><CheckCircle2 size={15} className="text-success" /> <span><b>Paling mendekati target:</b> {hariTerdekat.namaLengkap} ({hariTerdekat.n.kalori.toLocaleString('id-ID')} kkal)</span></div>}
+            {hariTerendah && <div className="flex items-center gap-2"><AlertTriangle size={15} className="text-accent" /> <span><b>Asupan terendah:</b> {hariTerendah.namaLengkap} ({hariTerendah.n.kalori.toLocaleString('id-ID')} kkal)</span></div>}
             {!hariTerdekat && <div className="text-slate-500">Data akan muncul setelah ada menu yang dijadwalkan.</div>}
           </div>
         </section>
@@ -151,6 +285,109 @@ export default function Gizi() {
           </div>
         </section>
       </div>
+
+      {/* Rincian Menu & Nutrisi Sesuai Tanggal yang Diklik */}
+      <section className="card p-5 border border-slate-200/80 shadow-sm animate-in fade-in duration-200">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-3 mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-extrabold text-slate-800">
+                Menu &amp; Nutrisi: {hariAktif.namaLengkap}, {hariAktif.tanggalFormat}
+              </h2>
+              {hariAktif.hariIni && (
+                <span className="rounded-full bg-brand-light px-2.5 py-0.5 text-xs font-bold text-brand-dark">
+                  Hari Ini
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {hariAktif.ids.length > 0
+                ? `${hariAktif.ids.length} menu tercatat · Estimasi biaya: ${rupiah(hariAktif.n.biaya)}`
+                : 'Belum ada menu yang dicatat pada tanggal ini.'}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+              hariAktif.ada ? 'bg-success-light text-success-dark' : 'bg-slate-100 text-slate-500'
+            }`}>
+              {hariAktif.ada ? (hariAktif.tercatat ? '✓ Sudah Dicatat' : 'Menu Hari Ini Aktif') : 'Belum Dicatat'}
+            </span>
+          </div>
+        </div>
+
+        {/* Ringkasan Makro Nutrisi di Tanggal Terpilih */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-4">
+          <div className="rounded-xl bg-slate-50 p-3 text-center">
+            <div className="text-[11px] font-semibold text-slate-500">Kalori</div>
+            <div className="text-lg font-extrabold text-slate-800">{hariAktif.n.kalori.toLocaleString('id-ID')} kkal</div>
+            <div className="text-[10px] text-slate-400">Target: {T.kalori.toLocaleString('id-ID')} kkal</div>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-3 text-center">
+            <div className="text-[11px] font-semibold text-slate-500">Protein</div>
+            <div className="text-lg font-extrabold text-slate-800">{hariAktif.n.protein}g</div>
+            <div className="text-[10px] text-slate-400">Target: {T.protein}g</div>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-3 text-center">
+            <div className="text-[11px] font-semibold text-slate-500">Karbohidrat</div>
+            <div className="text-lg font-extrabold text-slate-800">{hariAktif.n.karbo}g</div>
+            <div className="text-[10px] text-slate-400">Target: {T.karbo}g</div>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-3 text-center">
+            <div className="text-[11px] font-semibold text-slate-500">Serat</div>
+            <div className="text-lg font-extrabold text-slate-800">{hariAktif.n.serat}g</div>
+            <div className="text-[10px] text-slate-400">Target: {T.serat}g</div>
+          </div>
+        </div>
+
+        {/* Daftar Makanan di Tanggal Terpilih */}
+        {hariAktif.ids.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-center">
+            <p className="text-sm text-slate-500 mb-3">
+              Tidak ada catatan menu untuk tanggal {hariAktif.tanggalFormat}.
+            </p>
+            <Link href="/menu" className="btn btn-primary text-xs rounded-full py-2 px-4 inline-flex items-center gap-1.5">
+              + Pilih Menu di Rekomendasi
+            </Link>
+          </div>
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {hariAktif.ids.map((id) => getRecipe(id)).filter(Boolean).map((r) => {
+              const porsi = customPlanDetails?.[r.id]?.porsi || 1;
+              return (
+                <li key={r.id} className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 hover:bg-slate-100 transition-colors">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-2xl shadow-xs">
+                    {r.emoji}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[11px] font-bold uppercase tracking-wide text-brand-dark">
+                      {SLOT_LABEL[r.slot]} {porsi > 1 ? `(${porsi} porsi)` : ''}
+                    </span>
+                    <span className="block truncate text-sm font-extrabold text-slate-800">{r.nama}</span>
+                    <span className="block text-xs text-slate-500">
+                      {rupiah(r.harga * porsi)} · {r.kalori * porsi} kkal
+                    </span>
+                  </div>
+                  <Link
+                    href={`/menu/${r.id}`}
+                    aria-label={`Lihat resep ${r.nama}`}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-600 hover:text-brand-dark shadow-xs transition-colors"
+                  >
+                    <ChevronRight size={16} />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {/* Tombol Catat Makan jika tanggal terpilih adalah hari ini dan belum dicatat */}
+        {hariAktif.hariIni && !hariAktif.tercatat && (
+          <button onClick={logToday} className="btn btn-primary mt-4 w-full sm:w-auto">
+            <Plus size={18} /> Catat Makan Hari Ini
+          </button>
+        )}
+      </section>
 
       {/* Catatan & rekomendasi */}
       <section className="card p-5">
@@ -180,23 +417,6 @@ export default function Gizi() {
           </div>
         </div>
         <p className="mt-4 flex items-start gap-2 text-xs text-slate-500"><Info size={14} className="mt-0.5 shrink-0" /> Skor hanya menghitung menu yang dijadwalkan di NutriKos, tidak termasuk jajan di luar aplikasi. Nilai serat dipakai sebagai pendekatan asupan sayur. Ini panduan umum, bukan diagnosis atau pengganti saran ahli gizi.</p>
-      </section>
-
-      {/* Menu hari ini + catat */}
-      <section className="card p-5">
-        <div className="mb-3 flex items-center justify-between text-sm font-bold"><span className="text-lg font-extrabold">Menu Hari Ini</span><span className={tercatatHariIni ? 'text-success-dark' : 'text-slate-400'}>{tercatatHariIni ? 'Tercatat' : 'Belum dicatat'}</span></div>
-        <ul className="grid gap-2 text-sm md:grid-cols-3">
-          {plan.map((id) => getRecipe(id)).filter(Boolean).map((r) => {
-            const porsi = customPlanDetails?.[r.id]?.porsi || 1;
-            return (
-              <li key={r.id} className="flex justify-between rounded-xl bg-slate-50 px-3 py-2">
-                <span><span className="text-xs text-slate-500">{SLOT_LABEL[r.slot]} {porsi > 1 ? `(${porsi} porsi)` : ''}</span><br />{r.emoji} {r.nama}</span>
-                <span className="font-semibold text-slate-500">{rupiah(r.harga * porsi)}</span>
-              </li>
-            );
-          })}
-        </ul>
-        <button onClick={logToday} className="btn btn-primary mt-4 w-full sm:w-auto"><Plus size={18} /> Catat Makan Hari Ini</button>
       </section>
     </div>
   );
