@@ -2,9 +2,9 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, CheckCheck, Clock, HeartPulse, Menu, Refrigerator, Search, ShoppingBag, UtensilsCrossed, X } from 'lucide-react';
+import { Bell, CheckCheck, Clock, HeartPulse, Home, Menu, Refrigerator, Search, ShoppingBag, UserCheck, UtensilsCrossed, X } from 'lucide-react';
 import { useApp } from './AppProvider';
-import { getRecipe, RECIPES, rupiah, SLOT_LABEL, targetGizi } from '@/lib/data';
+import { cekKelengkapanProfil, getRecipe, RECIPES, rupiah, SLOT_LABEL, targetGizi } from '@/lib/data';
 import { ideasFromStock, nutrisiDari } from '@/lib/recommend';
 
 export default function Header() {
@@ -50,6 +50,29 @@ export default function Header() {
   const notifikasi = useMemo(() => {
     if (!ready) return [];
     const list = [];
+
+    const kelengkapan = cekKelengkapanProfil(profile);
+    if (kelengkapan.kosongDataDiri.length > 0) {
+      list.push({
+        id: 'lengkapi-diri',
+        href: '/profil',
+        Icon: UserCheck,
+        warna: 'bg-accent-light text-amber-800',
+        judul: 'Lengkapi data diri kamu',
+        ket: `Belum diisi: ${kelengkapan.kosongDataDiri.map((d) => d.label).join(', ')}`,
+      });
+    }
+    if (kelengkapan.perluDilengkapi && kelengkapan.kosongKos.length > 0) {
+      list.push({
+        id: 'lengkapi-kos',
+        href: '/profil-kos',
+        Icon: Home,
+        warna: 'bg-brand-light text-brand-dark',
+        judul: 'Lengkapi profil kos & alat masak',
+        ket: `Belum diisi: ${kelengkapan.kosongKos.map((d) => d.label).join(', ')}`,
+      });
+    }
+
     const items = getShoppingItems ? getShoppingItems() : [];
     const perluDibeli = items.filter((x) => !x.sudahAda && !checked[x.nama]);
     if (perluDibeli.length > 0) {

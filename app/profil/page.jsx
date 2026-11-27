@@ -1,10 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Save, Check, Heart, CalendarCheck2, Wallet, X, Plus, Camera, Upload, Trash2 } from 'lucide-react';
+import { Save, Check, Heart, CalendarCheck2, Wallet, X, Plus, Camera, Upload, Trash2, AlertCircle } from 'lucide-react';
 import { useApp } from '@/components/AppProvider';
 import Ring from '@/components/Ring';
-import { AVATARS, PANTANGAN_OPTIONS, rupiah, targetGizi } from '@/lib/data';
+import { AVATARS, PANTANGAN_OPTIONS, cekKelengkapanProfil, rupiah, targetGizi } from '@/lib/data';
 
 export default function ProfilSaya() {
   const { profile, setProfile, favorit, log, ready } = useApp();
@@ -99,6 +99,7 @@ export default function ProfilSaya() {
     setTimeout(() => setToast(false), 2500);
   };
   const sisaPantangan = PANTANGAN_OPTIONS.filter((p) => !profile.pantangan.includes(p));
+  const kelengkapan = cekKelengkapanProfil(form);
 
   const isFotoKustom = form.avatar?.startsWith('data:image') || form.avatar?.startsWith('http');
 
@@ -110,6 +111,18 @@ export default function ProfilSaya() {
           <button onClick={simpan} className="btn btn-primary rounded-full"><Save size={16} /> Simpan Perubahan</button>
         </div>
       </div>
+
+      {kelengkapan.kosongDataDiri.length > 0 && (
+        <div role="status" className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-900">
+          <AlertCircle size={19} className="mt-0.5 shrink-0 text-amber-700" />
+          <div className="min-w-0 flex-1">
+            <div className="font-extrabold">Data diri kamu belum lengkap</div>
+            <p className="mt-0.5 text-xs text-amber-800">
+              Silakan lengkapi kolom yang masih kosong ({kelengkapan.kosongDataDiri.map((d) => d.label).join(', ')}), lalu klik <b>Simpan Perubahan</b>.
+            </p>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div role="status" className="flex items-center gap-2 rounded-xl bg-success-light px-4 py-3 text-sm font-bold text-success-dark animate-in fade-in duration-200">
@@ -230,8 +243,20 @@ export default function ProfilSaya() {
             <div className="grid gap-4 md:grid-cols-2">
               <div><label className="label" htmlFor="nama">Nama lengkap</label><input id="nama" className="input" value={form.nama} onChange={(e) => ubah({ nama: e.target.value })} /></div>
               <div><label className="label" htmlFor="email">Email akun (untuk login)</label><input id="email" type="email" className="input bg-slate-100 text-slate-500" value={form.email} readOnly aria-readonly="true" /></div>
-              <div><label className="label" htmlFor="kampus">Asal kampus</label><input id="kampus" className="input" placeholder="contoh: Universitas Indonesia" value={form.kampus} onChange={(e) => ubah({ kampus: e.target.value })} /></div>
-              <div><label className="label" htmlFor="prodi">Program studi</label><input id="prodi" className="input" placeholder="contoh: Teknik Informatika" value={form.prodi} onChange={(e) => ubah({ prodi: e.target.value })} /></div>
+              <div>
+                <label className="label flex items-center gap-2" htmlFor="kampus">
+                  <span>Asal kampus</span>
+                  {!form.kampus?.trim() && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold normal-case text-amber-800">Belum diisi</span>}
+                </label>
+                <input id="kampus" className="input" placeholder="contoh: Universitas Indonesia" value={form.kampus} onChange={(e) => ubah({ kampus: e.target.value })} />
+              </div>
+              <div>
+                <label className="label flex items-center gap-2" htmlFor="prodi">
+                  <span>Program studi</span>
+                  {!form.prodi?.trim() && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold normal-case text-amber-800">Belum diisi</span>}
+                </label>
+                <input id="prodi" className="input" placeholder="contoh: Teknik Informatika" value={form.prodi} onChange={(e) => ubah({ prodi: e.target.value })} />
+              </div>
               <div><label className="label" htmlFor="smt">Semester saat ini</label>
                 <select id="smt" className="input" value={form.semester} onChange={(e) => ubah({ semester: e.target.value })}>{[1, 2, 3, 4, 5, 6, 7, 8].map((s) => <option key={s} value={String(s)}>Semester {s}</option>)}</select></div>
             </div>

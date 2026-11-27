@@ -2,9 +2,9 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Sparkles, Refrigerator, Dices, ChevronRight, Clock, ShoppingBag, Store, Eye, Leaf } from 'lucide-react';
+import { Sparkles, Refrigerator, Dices, ChevronRight, Clock, ShoppingBag, Store, Eye, Leaf, UserCheck, X, ArrowRight } from 'lucide-react';
 import { useApp, kunciTanggal } from '@/components/AppProvider';
-import { getRecipe, rupiah, targetGizi, SLOT_LABEL } from '@/lib/data';
+import { cekKelengkapanProfil, getRecipe, rupiah, targetGizi, SLOT_LABEL } from '@/lib/data';
 import { nutrisiDari, allowedRecipes, ideasFromStock } from '@/lib/recommend';
 import { mintaAI } from '@/lib/ai';
 import Ring from '@/components/Ring';
@@ -19,6 +19,15 @@ export default function Beranda() {
   const { profile, plan, log, setPlan, generatePlan, setAi, customPlanDetails, setTriggerAiModal, getShoppingItems, checked, favorit, ready } = useApp();
   const [loading, setLoading] = useState(false);
   const [jamSekarang, setJamSekarang] = useState(null);
+  const [tutupBannerProfil, setTutupBannerProfil] = useState(false);
+
+  const kunciBanner = `nutrikos-hide-onboarding-${profile?.akunId || 'lokal'}`;
+  useEffect(() => {
+    try {
+      setTutupBannerProfil(localStorage.getItem(kunciBanner) === '1');
+    } catch (e) {}
+  }, [kunciBanner]);
+
   useEffect(() => {
     const t = () => { const d = new Date(); setJamSekarang(d.getHours() + d.getMinutes() / 60); };
     t();
@@ -26,6 +35,12 @@ export default function Beranda() {
     return () => clearInterval(id);
   }, []);
   if (!ready) return null;
+
+  const kelengkapan = cekKelengkapanProfil(profile);
+  const tutupBanner = () => {
+    setTutupBannerProfil(true);
+    try { localStorage.setItem(kunciBanner, '1'); } catch (e) {}
+  };
 
   const T = targetGizi(profile);
   const resep = plan.map(getRecipe).filter(Boolean).sort((a, b) => URUT[a.slot] - URUT[b.slot]);
@@ -82,7 +97,81 @@ export default function Beranda() {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3 w-full min-w-0 max-w-full">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-full">
+      {/* Pemberitahuan lengkapi data diri untuk akun baru / data profil kosong */}
+      {kelengkapan.perluDilengkapi && !tutupBannerProfil && (
+        <section
+          role="region"
+          aria-label="Pemberitahuan lengkapi data diri"
+          className="relative overflow-hidden rounded-3xl border border-amber-200/90 bg-gradient-to-r from-amber-50 via-white to-brand-light/40 p-4 sm:p-6 shadow-xs"
+        >
+          <button
+            type="button"
+            onClick={tutupBanner}
+            aria-label="Tutup pemberitahuan"
+            title="Tutup sementara"
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-amber-100/70 hover:text-slate-700 transition-colors cursor-pointer"
+          >
+            <X size={16} />
+          </button>
+
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between pr-8 lg:pr-10">
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-800">
+                <UserCheck size={22} />
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-amber-200/70 px-2.5 py-0.5 text-[11px] font-extrabold text-amber-900">
+                    Akun Baru · Lengkapi Profil
+                  </span>
+                  <span className="text-xs font-bold text-slate-500">
+                    {kelengkapan.jumlahTerisi} dari {kelengkapan.total} data terisi ({kelengkapan.persen}%)
+                  </span>
+                </div>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
+                  Yuk lengkapi data diri kamu supaya NutriKos makin akurat!
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Beberapa data akun barumu masih kosong. Klik bagian berikut untuk langsung mengisinya:
+                </p>
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {kelengkapan.kosong.map((item) => (
+                    <Link
+                      key={item.kunci}
+                      href={item.href}
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-white px-2.5 py-1 text-xs font-bold text-amber-900 hover:border-brand-dark hover:bg-brand-light hover:text-brand-dark transition-colors"
+                    >
+                      <span>• {item.label}</span>
+                      <span className="text-[10px] font-semibold text-amber-600">(Kosong)</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0 lg:self-center">
+              {kelengkapan.kosongDataDiri.length > 0 && (
+                <Link href="/profil" className="btn btn-primary rounded-full text-xs sm:text-sm px-4 py-2.5">
+                  Lengkapi Data Diri <ArrowRight size={15} />
+                </Link>
+              )}
+              {kelengkapan.kosongKos.length > 0 && (
+                <Link
+                  href="/profil-kos"
+                  className={`btn rounded-full text-xs sm:text-sm px-4 py-2.5 ${
+                    kelengkapan.kosongDataDiri.length === 0 ? 'btn-primary' : 'btn-soft bg-white border border-slate-200'
+                  }`}
+                >
+                  Atur Profil Kos <ArrowRight size={15} />
+                </Link>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3 w-full min-w-0 max-w-full">
       <div className="space-y-4 sm:space-y-6 xl:col-span-2 min-w-0 max-w-full">
         {/* Sapaan */}
         <section className="card relative overflow-hidden p-4 sm:p-8">
@@ -232,6 +321,7 @@ export default function Beranda() {
             <ChevronRight size={16} className="text-slate-400" />
           </Link>
         </section>
+      </div>
       </div>
     </div>
   );

@@ -1,8 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { Check, Plus, RotateCcw, Save, Home, Wallet, CookingPot, Flame, Microwave, Wind, Soup, ChefHat, Utensils, MapPin, ShieldAlert } from 'lucide-react';
+import { Check, Plus, RotateCcw, Save, Home, Wallet, CookingPot, Flame, Microwave, Wind, Soup, ChefHat, Utensils, MapPin, ShieldAlert, AlertCircle } from 'lucide-react';
 import { useApp } from '@/components/AppProvider';
-import { ALAT_OPTIONS, PANTANGAN_OPTIONS, DEFAULT_PROFILE, rupiah, targetGizi, RECIPES } from '@/lib/data';
+import { ALAT_OPTIONS, PANTANGAN_OPTIONS, DEFAULT_PROFILE, cekKelengkapanProfil, rupiah, targetGizi, RECIPES } from '@/lib/data';
 import { allowedRecipes } from '@/lib/recommend';
 
 const PILIHAN_CEPAT = [{ l: 'Hemat', v: 20000 }, { l: 'Standar', v: 30000 }, { l: 'Leluasa', v: 50000 }];
@@ -39,6 +39,7 @@ export default function ProfilKos() {
 
   const cocok = allowedRecipes(profile).length;
   const T = targetGizi(profile);
+  const kelengkapan = cekKelengkapanProfil(profile);
   const simpan = () => {
     generatePlan();
     setToast('Pengaturan kos tersimpan dan menu diperbarui.');
@@ -64,6 +65,18 @@ export default function ProfilKos() {
 
       {toast && <div role="status" className="flex items-center gap-2 rounded-xl bg-success-light px-4 py-3 text-sm font-bold text-success-dark"><Check size={18} /> {toast}</div>}
 
+      {kelengkapan.kosongKos.length > 0 && !profile.lokasi?.trim() && (
+        <div role="status" className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-900">
+          <AlertCircle size={19} className="mt-0.5 shrink-0 text-amber-700" />
+          <div className="min-w-0 flex-1">
+            <div className="font-extrabold">Data profil kos masih ada yang kosong</div>
+            <p className="mt-0.5 text-xs text-amber-800">
+              Lengkapi {kelengkapan.kosongKos.map((d) => d.label).join(' dan ')} agar rekomendasi menu sesuai dengan kondisi kosmu, lalu klik <b>Simpan Perubahan</b>.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           {/* Informasi kos */}
@@ -73,7 +86,10 @@ export default function ProfilKos() {
               <div><h2 className="text-lg font-extrabold">Informasi Kos</h2><p className="text-xs text-slate-500">Data dasar untuk menyesuaikan menu dan target gizi.</p></div>
             </div>
             <div>
-              <label className="label" htmlFor="lokasi">Lokasi / area kos</label>
+              <label className="label flex items-center gap-2" htmlFor="lokasi">
+                <span>Lokasi / area kos</span>
+                {!profile.lokasi?.trim() && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold normal-case text-amber-800">Belum diisi</span>}
+              </label>
               <div className="relative"><MapPin size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input id="lokasi" className="input !pl-9" placeholder="contoh: Dekat kampus, Kab. Bogor" value={profile.lokasi} onChange={(e) => setProfile({ lokasi: e.target.value })} /></div>
             </div>
             <div>
