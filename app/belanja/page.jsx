@@ -39,6 +39,7 @@ export default function BelanjaPage() {
   const [modalHapusOpen, setModalHapusOpen] = useState(false);
   const [itemAktif, setItemAktif] = useState(null);
   const [toast, setToast] = useState('');
+  const [filterStatus, setFilterStatus] = useState('semua'); // 'semua' | 'perlu' | 'terbeli' | 'ada'
 
   // Form states
   const [formNama, setFormNama] = useState('');
@@ -50,14 +51,28 @@ export default function BelanjaPage() {
   // Ambil daftar barang belanja terkini
   const items = useMemo(() => (ready && getShoppingItems ? getShoppingItems() : []), [ready, getShoppingItems]);
 
+  // Filter daftar belanja berdasarkan badge aktif
+  const itemsTampil = useMemo(() => {
+    if (filterStatus === 'perlu') {
+      return items.filter((x) => !x.sudahAda && !checked[x.nama]);
+    }
+    if (filterStatus === 'terbeli') {
+      return items.filter((x) => !x.sudahAda && checked[x.nama]);
+    }
+    if (filterStatus === 'ada') {
+      return items.filter((x) => x.sudahAda);
+    }
+    return items;
+  }, [items, filterStatus, checked]);
+
   // Kelompokkan per kategori yang teratur
   const grupKategori = useMemo(() => {
     return KATEGORI_KEYS.map((k) => ({
       key: k,
       label: KAT[k] || k,
-      list: items.filter((x) => x.kat === k),
+      list: itemsTampil.filter((x) => x.kat === k),
     }));
-  }, [items]);
+  }, [itemsTampil]);
 
   if (!ready) return null;
 
@@ -223,20 +238,70 @@ export default function BelanjaPage() {
         </button>
       </div>
 
-      {/* Badge Ringkasan Cepat */}
+      {/* Badge Ringkasan Cepat & Filter Interaktif */}
       <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-        <span className="rounded-full bg-slate-200 px-3 py-1.5 text-slate-700">
+        <button
+          type="button"
+          onClick={() => setFilterStatus('semua')}
+          className={`rounded-full px-3 py-1.5 transition-all cursor-pointer ${
+            filterStatus === 'semua'
+              ? 'bg-slate-800 text-white shadow-xs ring-2 ring-slate-800/30 font-extrabold'
+              : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+          }`}
+          title="Klik untuk tampilkan semua bahan belanja"
+        >
           Total {totalBarang} Item Bahan
-        </span>
-        <span className="rounded-full bg-brand-light px-3 py-1.5 text-brand-dark">
-          {jumlahTerbeli} dari {perluBeli.length} Perlu Dibeli Sudah Dicatat
-        </span>
-        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-600">
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterStatus('perlu')}
+          className={`rounded-full px-3 py-1.5 transition-all cursor-pointer ${
+            filterStatus === 'perlu'
+              ? 'bg-brand-dark text-white shadow-xs ring-2 ring-brand-dark/30 font-extrabold'
+              : 'bg-brand-light text-brand-dark hover:bg-brand-mint/60'
+          }`}
+          title="Klik untuk menyaring bahan yang masih perlu dibeli"
+        >
+          {Math.max(0, perluBeli.length - jumlahTerbeli)} Perlu Dibeli
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterStatus('terbeli')}
+          className={`rounded-full px-3 py-1.5 transition-all cursor-pointer ${
+            filterStatus === 'terbeli'
+              ? 'bg-success-dark text-white shadow-xs ring-2 ring-success-dark/30 font-extrabold'
+              : 'bg-success-light text-success-dark hover:bg-emerald-100'
+          }`}
+          title="Klik untuk menyaring bahan yang sudah dicatat/dibeli"
+        >
+          {jumlahTerbeli} dari {perluBeli.length} Selesai Dicatat
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterStatus('ada')}
+          className={`rounded-full px-3 py-1.5 transition-all cursor-pointer ${
+            filterStatus === 'ada'
+              ? 'bg-slate-700 text-white shadow-xs ring-2 ring-slate-700/30 font-extrabold'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+          title="Klik untuk melihat bahan yang sudah tersedia di kos"
+        >
           {sudahAda.length} Sudah Ada di Kos
-        </span>
-        <span className="rounded-full bg-accent-light px-3 py-1.5 text-amber-900">
-          Rekomendasi: Belanja di Warung / Pasar Subuh
-        </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            showToast('💡 Tips: Belanja sayur di pasar subuh (05:00 - 07:00) atau warung terdekat biasanya hemat 30-50% dibanding minimarket/supermarket!');
+          }}
+          className="rounded-full bg-accent-light px-3 py-1.5 text-amber-900 hover:bg-amber-100 transition-colors cursor-pointer"
+          title="Klik untuk melihat tips belanja hemat"
+        >
+          💡 Rekomendasi: Belanja di Warung / Pasar Subuh
+        </button>
       </div>
 
       {/* 2. Ringkasan Anggaran (Budget Card) */}
@@ -341,6 +406,19 @@ export default function BelanjaPage() {
           </p>
           <button onClick={bukaModalTambah} className="btn btn-primary mt-4">
             <Plus size={16} /> Tambah Barang Manual
+          </button>
+        </div>
+      ) : itemsTampil.length === 0 ? (
+        <div className="card text-center py-12">
+          <p className="text-sm text-slate-600 mb-2 font-medium">
+            Tidak ada bahan untuk filter yang dipilih.
+          </p>
+          <button
+            type="button"
+            onClick={() => setFilterStatus('semua')}
+            className="text-xs font-bold text-brand-dark underline cursor-pointer"
+          >
+            Tampilkan Semua Bahan Belanja ({totalBarang} Item)
           </button>
         </div>
       ) : (
