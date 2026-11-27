@@ -18,7 +18,7 @@ export default function Shell({ children }) {
       <SesiSync />
       <SinkronData />
       <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col pt-16">
+      <div className="flex min-w-0 flex-1 flex-col pt-16 lg:pl-72">
         <Header />
         <main className="w-full flex-1 min-w-0 px-3.5 py-4 sm:px-6 md:px-8 xl:px-10 pb-36 sm:pb-32 lg:pb-12">{children}</main>
       </div>

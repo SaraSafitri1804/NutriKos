@@ -78,8 +78,8 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Desktop: sidebar biru setinggi layar */}
-      <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-72 lg:shrink-0 lg:flex-col lg:overflow-y-auto lg:rounded-br-[3rem] lg:bg-brand-dark">
+      {/* Desktop: sidebar biru setinggi layar dan selalu tetap di posisi (fixed) saat halaman di-scroll */}
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:h-screen lg:w-72 lg:shrink-0 lg:flex-col lg:overflow-y-auto lg:rounded-br-[3rem] lg:bg-brand-dark shadow-sm">
         <Logo />
         {navContent}
         {footer}
