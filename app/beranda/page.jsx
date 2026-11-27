@@ -30,21 +30,27 @@ export default function Beranda() {
   const T = targetGizi(profile);
   const resep = plan.map(getRecipe).filter(Boolean).sort((a, b) => URUT[a.slot] - URUT[b.slot]);
   const n = nutrisiDari(plan, customPlanDetails);
-  const sisa = profile.budget - n.biaya;
+  // Hanya hitung biaya hari ini jika user sudah benar-benar mencatat makan (log[kunciHariIni] ada)
+  const sudahLog = !!(log?.[kunciTanggal(new Date())] );
+  const biayaHariIni = sudahLog ? n.biaya : 0;
+  const sisa = profile.budget - biayaHariIni;
   const pct = (v, t) => Math.round((v / t) * 100);
   const skor = Math.round(((Math.min(1, n.protein / T.protein) + Math.min(1, n.serat / T.serat) + Math.min(1, n.karbo / T.karbo)) / 3) * 100);
   const statusGizi = skor >= 80 ? 'Cukup' : skor >= 50 ? 'Perlu Ditingkatkan' : 'Kurang';
   const nama = profile.nama.split(' ')[0];
 
-  // Pengeluaran minggu ini (Senin-Minggu): hari lampau dari riwayat 'log', hari ini dari menu aktif
+  // Pengeluaran minggu ini (Senin-Minggu): hari lampau dari riwayat 'log', hari ini hanya jika sudah log
   const sekarang = new Date();
   const idxHariIni = (sekarang.getDay() + 6) % 7;
   const kunciHariIni = kunciTanggal(sekarang);
   const minggu = HARI_PENDEK.map((label, i) => {
     const d = new Date(sekarang.getTime() + (i - idxHariIni) * 86400000);
     const k = kunciTanggal(d);
-    const ids = k === kunciHariIni ? plan : log?.[k] || [];
-    const biaya = k === kunciHariIni ? n.biaya : ids.reduce((s, id) => s + (getRecipe(id)?.harga || 0), 0);
+    const ids = log?.[k] || [];
+    // Hari ini: tampilkan biaya hanya kalau user sudah log (sudahLog); hari lain: dari riwayat log
+    const biaya = (k === kunciHariIni)
+      ? (sudahLog ? biayaHariIni : 0)
+      : ids.reduce((s, id) => s + (getRecipe(id)?.harga || 0), 0);
     return { label, biaya, hariIni: i === idxHariIni, ada: ids.length > 0 };
   });
   const totalMinggu = minggu.reduce((s, h) => s + h.biaya, 0);
@@ -87,7 +93,10 @@ export default function Beranda() {
               </span>
               <h1 className="mt-2.5 text-2xl font-extrabold sm:text-3xl">Halo, {nama}!</h1>
               <p className="mt-1.5 text-sm sm:text-base text-slate-600 leading-relaxed">
-                Sisa anggaran makan hari ini <b>{rupiah(sisa)}</b>. Kamu punya {resep.length} menu terjadwal. Yuk masak hemat &amp; bernutrisi!
+                {sudahLog
+                  ? <>Sisa anggaran makan hari ini <b>{rupiah(sisa)}</b>. Kamu punya {resep.length} menu terjadwal. Yuk masak hemat &amp; bernutrisi!</>
+                  : <>Anggaran makan hari ini <b>{rupiah(profile.budget)}</b>. Yuk pilih menu dan mulai catat makanmu!</>
+                }
               </p>
               <div className="mt-4 flex flex-col sm:flex-row gap-2">
                 <button className="btn btn-primary w-full sm:w-auto disabled:opacity-70" disabled={loading} onClick={rekomendasi}><Sparkles size={18} /> {loading ? 'Menyusun menu...' : 'Rekomendasikan Menu'}</button>
