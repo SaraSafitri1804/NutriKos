@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { DEFAULT_PROFILE } from '@/lib/data';
 import { recommendDaily, buildShopping } from '@/lib/recommend';
+import { supabaseBrowser } from '@/lib/supabase/client';
 
 const KEY = 'nutrikos-v2';
 const LEGACY_KEY = 'nutrikos-v1';
@@ -55,6 +56,31 @@ export default function AppProvider({ children }) {
       setState((s) => ({ ...s, plan: recommendDaily(s.profile) }));
     }
     setReady(true);
+  }, []);
+
+  // Deteksi otomatis token reset password (recovery) baik dari hash URL maupun event Supabase
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash || '';
+    const search = window.location.search || '';
+    if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+      if (window.location.pathname !== '/reset-sandi') {
+        window.location.href = `/reset-sandi${hash || search}`;
+        return;
+      }
+    }
+
+    try {
+      const sb = supabaseBrowser();
+      const { data: { subscription } } = sb.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          if (window.location.pathname !== '/reset-sandi') {
+            window.location.href = '/reset-sandi';
+          }
+        }
+      });
+      return () => subscription?.unsubscribe();
+    } catch (e) {}
   }, []);
 
   useEffect(() => {

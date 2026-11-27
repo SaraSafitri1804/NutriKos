@@ -47,6 +47,13 @@ export async function middleware(request) {
     return alihkan(tujuan);
   }
 
+  // Jika URL membawa token pemulihan sandi (recovery), bawa langsung ke halaman /reset-sandi
+  if ((path === '/' || path === '/mulai') && (request.nextUrl.searchParams.get('type') === 'recovery' || request.nextUrl.searchParams.has('code'))) {
+    const tujuan = request.nextUrl.clone();
+    tujuan.pathname = '/reset-sandi';
+    return alihkan(tujuan);
+  }
+
   // Jika pengguna SUDAH login membuka landing page ('/' atau '/mulai'), langsung bawa ke /beranda
   if (user && (path === '/' || path === '/mulai')) {
     const tujuan = request.nextUrl.clone();
