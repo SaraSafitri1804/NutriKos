@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Flame, Beef, Wheat, Salad, SlidersHorizontal, AlertTriangle, CheckCircle2, Wallet, Info, Calendar } from 'lucide-react';
 import { useApp, kunciTanggal } from '@/components/AppProvider';
 import Ring from '@/components/Ring';
@@ -43,6 +43,7 @@ export default function Gizi() {
   const { profile, plan, log, logToday, customPlanDetails, ready } = useApp();
   const [offset, setOffset] = useState(0); // 0 = minggu ini, -1 = minggu lalu, dst.
   const [terpilihKey, setTerpilihKey] = useState(null);
+  const dateInputRef = useRef(null);
 
   if (!ready) return null;
 
@@ -51,6 +52,39 @@ export default function Gizi() {
   const kunciHariIni = kunciTanggal(sekarang);
   const idxHariIni = (sekarang.getDay() + 6) % 7;
   const senin = new Date(sekarang.getTime() + (-idxHariIni + offset * 7) * 86400000);
+
+  // Handler Pemilihan Tanggal dari Kalender
+  const handlePilihTanggal = (val) => {
+    if (!val) return;
+    const [thn, bln, tgl] = val.split('-').map(Number);
+    const dipilih = new Date(thn, bln - 1, tgl);
+
+    // Cari hari Senin pada minggu tanggal yang dipilih
+    const idxHariDipilih = (dipilih.getDay() + 6) % 7;
+    const seninDipilih = new Date(dipilih.getTime() - idxHariDipilih * 86400000);
+    seninDipilih.setHours(0, 0, 0, 0);
+
+    // Cari hari Senin minggu sekarang
+    const seninSekarang = new Date(sekarang.getTime() - idxHariIni * 86400000);
+    seninSekarang.setHours(0, 0, 0, 0);
+
+    // Hitung offset minggu secara presisi
+    const diffWeeks = Math.round((seninDipilih.getTime() - seninSekarang.getTime()) / (7 * 86400000));
+    setOffset(diffWeeks);
+    setTerpilihKey(val);
+  };
+
+  const bukaKalender = () => {
+    if (dateInputRef.current) {
+      if ('showPicker' in HTMLInputElement.prototype) {
+        try {
+          dateInputRef.current.showPicker();
+          return;
+        } catch (e) {}
+      }
+      dateInputRef.current.focus();
+    }
+  };
 
   // Satu minggu (Senin-Minggu). Hari ini memakai menu aktif; hari lain memakai riwayat catatan.
   const hari = HARI.map((nama, i) => {
@@ -133,31 +167,26 @@ export default function Gizi() {
             </button>
           </div>
 
-          {/* Pemilih Tanggal Kalender (Date Picker) */}
-          <div className="relative">
-            <input
-              type="date"
-              id="date-picker-gizi"
-              className="sr-only"
-              onChange={(e) => {
-                if (!e.target.value) return;
-                const [thn, bln, tgl] = e.target.value.split('-').map(Number);
-                const dipilih = new Date(thn, bln - 1, tgl);
-                const diffTime = dipilih.getTime() - sekarang.getTime();
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                const targetOffset = Math.floor((diffDays + idxHariIni) / 7);
-                setOffset(targetOffset);
-                setTerpilihKey(e.target.value);
-              }}
-            />
-            <label
-              htmlFor="date-picker-gizi"
-              className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors cursor-pointer border border-slate-200/80"
+          {/* Pemilih Tanggal Kalender (Date Picker Interaktif) */}
+          <div className="relative inline-flex items-center">
+            <button
+              type="button"
+              onClick={bukaKalender}
+              className="relative flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors cursor-pointer border border-slate-200/80 group"
               title="Klik untuk memilih tanggal dari kalender"
             >
-              <Calendar size={14} className="text-brand-dark" />
+              <Calendar size={14} className="text-brand-dark group-hover:scale-110 transition-transform" />
               <span>Pilih Tanggal</span>
-            </label>
+              <input
+                ref={dateInputRef}
+                type="date"
+                id="date-picker-gizi"
+                value={terpilihKey || kunciHariIni}
+                onChange={(e) => handlePilihTanggal(e.target.value)}
+                className="absolute inset-0 h-full w-full opacity-0 cursor-pointer z-10"
+                aria-label="Pilih tanggal kalender"
+              />
+            </button>
           </div>
 
           <Link href="/profil-kos" className="btn btn-primary whitespace-nowrap !py-2"><SlidersHorizontal size={16} /> Atur Target Gizi</Link>
