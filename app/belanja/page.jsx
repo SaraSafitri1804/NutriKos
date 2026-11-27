@@ -138,7 +138,7 @@ export default function BelanjaPage() {
 
     setModalEditOpen(false);
     setItemAktif(null);
-    showToast(`âœ“ Perubahan "${formNama.trim()}" berhasil disimpan!`);
+    showToast(`✓ Perubahan "${formNama.trim()}" berhasil disimpan!`);
   };
 
   // Handler Buka Modal Tambah
@@ -173,7 +173,7 @@ export default function BelanjaPage() {
     });
 
     setModalTambahOpen(false);
-    showToast(`âœ“ "${formNama.trim()}" berhasil ditambahkan ke daftar belanja!`);
+    showToast(`✓ "${formNama.trim()}" berhasil ditambahkan ke daftar belanja!`);
   };
 
   // Handler Hapus Item
@@ -193,21 +193,21 @@ export default function BelanjaPage() {
   // Bagikan ke WA / Clipboard
   const bagikan = async () => {
     const teks =
-      'ðŸ›’ *Daftar Belanja NutriKos*\n' +
+      '🛒 *Daftar Belanja NutriKos*\n' +
       perluBeli
         .map((x) => {
-          const status = checked[x.nama] ? 'âœ…' : 'â—»ï¸';
+          const status = checked[x.nama] ? '✅' : '◻️';
           return `${status} ${x.nama} (${x.qty}) - ${rupiah(x.harga)}`;
         })
         .join('\n') +
-      `\n\nðŸ’° *Total Estimasi:* ${rupiah(estimasiTotal)} (Bujet: ${rupiah(profile.budget)})`;
+      `\n\n💰 *Total Estimasi:* ${rupiah(estimasiTotal)} (Bujet: ${rupiah(profile.budget)})`;
 
     try {
       if (navigator.share) {
         await navigator.share({ text: teks });
       } else {
         await navigator.clipboard.writeText(teks);
-        showToast('âœ“ Daftar belanja disalin ke clipboard.');
+        showToast('✓ Daftar belanja disalin ke clipboard.');
       }
     } catch (e) {}
   };
@@ -302,12 +302,12 @@ export default function BelanjaPage() {
         <button
           type="button"
           onClick={() => {
-            showToast('ðŸ’¡ Tips: Belanja sayur di pasar subuh (05:00 - 07:00) atau warung terdekat biasanya hemat 30-50% dibanding minimarket/supermarket!');
+            showToast('💡 Tips: Belanja sayur di pasar subuh (05:00 - 07:00) atau warung terdekat biasanya hemat 30-50% dibanding minimarket/supermarket!');
           }}
           className="rounded-full bg-accent-light px-3 py-1.5 text-amber-900 hover:bg-amber-100 transition-colors cursor-pointer"
           title="Klik untuk melihat tips belanja hemat"
         >
-          ðŸ’¡ Rekomendasi: Belanja di Warung / Pasar Subuh
+          💡 Rekomendasi: Belanja di Warung / Pasar Subuh
         </button>
       </div>
 
@@ -365,12 +365,12 @@ export default function BelanjaPage() {
         <div className="pt-4 space-y-2">
           <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
             <span>Alokasi Bujet Terpakai: {persenBudget}%</span>
-            <span>{estimasiTotal > profile.budget ? 'âš ï¸ Melebihi target' : 'âœ“ Dalam target'}</span>
+            <span>{estimasiTotal > profile.budget ? '⚠️ Melebihi target' : '✓ Dalam target'}</span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
             <div
               className={`h-full transition-all duration-300 ${
-                estimasiTotal > profile.budget ? 'bg-red-500' : 'bg-brand-dark'
+                estimasiTotal > profile.budget ? '⚠️ Melebihi target' : '✓ Dalam target'
               }`}
               style={{ width: `${Math.min(100, persenBudget)}%` }}
             />
@@ -446,10 +446,10 @@ export default function BelanjaPage() {
                   <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
                     <div className="flex items-center gap-2">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-light text-brand-dark text-sm font-extrabold">
-                        {grup.key === 'karbo' && 'ðŸš'}
-                        {grup.key === 'protein' && 'ðŸ¥©'}
-                        {grup.key === 'sayur' && 'ðŸ¥¬'}
-                        {grup.key === 'bumbu' && 'ðŸ§‚'}
+                        {grup.key === 'karbo' && '🍚'}
+                        {grup.key === 'protein' && '🥩'}
+                        {grup.key === 'sayur' && '🥬'}
+                        {grup.key === 'bumbu' && '🧂'}
                       </div>
                       <div>
                         <h2 className="text-base font-extrabold text-slate-800">{grup.label}</h2>
@@ -522,9 +522,9 @@ export default function BelanjaPage() {
                             <div className="text-xs text-slate-500 mt-0.5">
                               <span className="font-semibold text-slate-600">{item.qty}</span>
                               {item.sudahAda ? (
-                                <span className="text-brand-dark font-medium"> â€¢ Tersedia di kos</span>
+                                <span className="text-brand-dark font-medium"> • Tersedia di kos</span>
                               ) : (
-                                <span> â€¢ {item.untuk || 'Kebutuhan Dapur'}</span>
+                                <span> • {item.untuk || 'Kebutuhan Dapur'}</span>
                               )}
                             </div>
                           </div>
