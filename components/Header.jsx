@@ -148,7 +148,7 @@ export default function Header() {
         <Menu size={22} />
       </button>
 
-      <div ref={cariRef} className="relative max-w-md flex-1">
+      <div ref={cariRef} className="relative flex-1 min-w-0 max-w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl">
         <form onSubmit={kirim} className="relative">
           <input
             value={cari}
@@ -156,7 +156,7 @@ export default function Header() {
             onChange={(e) => { setCari(e.target.value); setBukaCari(true); }}
             placeholder="Cari menu / bahan..."
             aria-label="Cari menu"
-            className="w-full rounded-full border-0 bg-white py-2 pl-3.5 pr-14 text-xs sm:text-sm sm:py-2.5 sm:pl-4 sm:pr-16 shadow-sm outline-none focus:ring-2 focus:ring-brand/30"
+            className="w-full rounded-full border border-slate-200/70 bg-white py-2 pl-3.5 pr-14 text-xs sm:text-sm sm:py-2.5 sm:pl-4 sm:pr-16 shadow-xs outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
           {cari && (
             <button
@@ -181,7 +181,7 @@ export default function Header() {
         </form>
 
         {bukaCari && cari.trim() && (
-          <div className="absolute left-0 right-0 mt-2 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl">
+          <div className="absolute left-0 right-0 mt-2 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl z-50">
             {hasilCari.length === 0 ? (
               <div className="px-4 py-4 text-center text-xs text-slate-500">
                 Tidak ada resep untuk &ldquo;{cari.trim()}&rdquo;.
