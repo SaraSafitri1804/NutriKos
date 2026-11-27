@@ -278,8 +278,13 @@ export default function Header() {
         </div>
 
         <Link href="/profil" className="flex items-center gap-2.5 border-l border-slate-200 pl-3" aria-label="Profil Saya">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-light text-xl ring-2 ring-brand-mint">
-            {profile?.avatar || '👩‍🎓'}
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-light text-xl ring-2 ring-brand-mint overflow-hidden shrink-0">
+            {profile?.avatar?.startsWith('data:image') || profile?.avatar?.startsWith('http') ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatar} alt="Foto Profil" className="h-full w-full object-cover" />
+            ) : (
+              profile?.avatar || '👩‍🎓'
+            )}
           </span>
           <span className="hidden max-w-[10rem] truncate text-sm font-semibold text-slate-800 sm:block">{profile?.nama}</span>
         </Link>

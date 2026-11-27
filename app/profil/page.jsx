@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { Save, Check, Heart, CalendarCheck2, Wallet, X, Plus } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Save, Check, Heart, CalendarCheck2, Wallet, X, Plus, Camera, Upload, Trash2 } from 'lucide-react';
 import { useApp } from '@/components/AppProvider';
 import Ring from '@/components/Ring';
 import { AVATARS, PANTANGAN_OPTIONS, rupiah, targetGizi } from '@/lib/data';
@@ -10,6 +10,9 @@ export default function ProfilSaya() {
   const { profile, setProfile, favorit, log, ready } = useApp();
   const [form, setForm] = useState(null);
   const [toast, setToast] = useState(false);
+  const [loadingFoto, setLoadingFoto] = useState(false);
+  const [errorFoto, setErrorFoto] = useState('');
+  const fileInputRef = useRef(null);
 
   // Isi form setelah data akun selesai dimuat dari database (atau setelah 2,5 detik bila tanpa koneksi),
   // agar menyimpan tidak menimpa data akun dengan data lokal yang lama.
@@ -23,13 +26,81 @@ export default function ProfilSaya() {
   const T = targetGizi(profile);
   const hariTercatat = Object.keys(log || {}).length;
   const ubah = (patch) => setForm((f) => ({ ...f, ...patch }));
+
+  // Handler Upload Foto Sendiri (Kompresi & Crop Persegi Otomatis)
+  const handleUploadFoto = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setErrorFoto('');
+
+    if (!file.type.startsWith('image/')) {
+      setErrorFoto('File harus berupa gambar (JPG, PNG, atau WebP).');
+      return;
+    }
+
+    setLoadingFoto(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const MAX_DIM = 256;
+          const width = img.width;
+          const height = img.height;
+
+          // Crop square tepat di tengah agar foto tidak tertarik / penyok
+          const minSide = Math.min(width, height);
+          const startX = (width - minSide) / 2;
+          const startY = (height - minSide) / 2;
+
+          canvas.width = MAX_DIM;
+          canvas.height = MAX_DIM;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, startX, startY, minSide, minSide, 0, 0, MAX_DIM, MAX_DIM);
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          ubah({ avatar: dataUrl });
+          setProfile({ avatar: dataUrl });
+          setLoadingFoto(false);
+          setToast('✓ Foto profil berhasil dipasang!');
+          setTimeout(() => setToast(false), 2500);
+        } catch (err) {
+          setErrorFoto('Gagal memproses gambar profil.');
+          setLoadingFoto(false);
+        }
+      };
+      img.onerror = () => {
+        setErrorFoto('Gagal memuat gambar.');
+        setLoadingFoto(false);
+      };
+      img.src = event.target.result;
+    };
+    reader.onerror = () => {
+      setErrorFoto('Gagal membaca file gambar.');
+      setLoadingFoto(false);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const hapusFoto = () => {
+    const defaultAvatar = '👩‍🎓';
+    ubah({ avatar: defaultAvatar });
+    setProfile({ avatar: defaultAvatar });
+    setToast('✓ Foto dihapus, kembali ke karakter emoji.');
+    setTimeout(() => setToast(false), 2500);
+  };
+
   const simpan = () => {
     if (!form.nama.trim()) return;
     setProfile({ nama: form.nama.trim(), kampus: form.kampus.trim(), prodi: form.prodi.trim(), semester: form.semester, avatar: form.avatar });
-    setToast(true);
+    setToast('✓ Perubahan berhasil disimpan');
     setTimeout(() => setToast(false), 2500);
   };
   const sisaPantangan = PANTANGAN_OPTIONS.filter((p) => !profile.pantangan.includes(p));
+
+  const isFotoKustom = form.avatar?.startsWith('data:image') || form.avatar?.startsWith('http');
 
   return (
     <div className="space-y-6">
@@ -40,20 +111,106 @@ export default function ProfilSaya() {
         </div>
       </div>
 
-      {toast && <div role="status" className="flex items-center gap-2 rounded-xl bg-success-light px-4 py-3 text-sm font-bold text-success-dark"><Check size={18} /> Perubahan berhasil disimpan</div>}
+      {toast && (
+        <div role="status" className="flex items-center gap-2 rounded-xl bg-success-light px-4 py-3 text-sm font-bold text-success-dark animate-in fade-in duration-200">
+          <Check size={18} /> {typeof toast === 'string' ? toast : 'Perubahan berhasil disimpan'}
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-3">
         {/* Kolom kiri: identitas */}
         <div className="space-y-6">
           <section className="card p-6 text-center">
-            <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-brand-light text-6xl ring-4 ring-brand-mint">{form.avatar}</div>
+            {/* Foto / Avatar Profil */}
+            <div className="relative mx-auto h-28 w-28 sm:h-32 sm:w-32">
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="group relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden rounded-full bg-brand-light ring-4 ring-brand-mint shadow-md transition-all hover:ring-brand-dark"
+                title="Klik untuk mengubah foto profil"
+              >
+                {isFotoKustom ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={form.avatar} alt="Foto Profil" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-6xl sm:text-7xl">{form.avatar}</span>
+                )}
+
+                {/* Overlay hover kamera */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/45 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                  <Camera size={24} />
+                  <span className="mt-1 text-[11px] font-bold">Ubah Foto</span>
+                </div>
+              </div>
+
+              {/* Tombol Kamera di sudut avatar */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-brand-dark text-white shadow-md hover:bg-brand-deeper transition-transform hover:scale-105"
+                title="Pilih foto dari galeri / kamera"
+                aria-label="Pilih foto profil"
+              >
+                <Camera size={16} />
+              </button>
+            </div>
+
+            {/* Input file tersembunyi */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleUploadFoto}
+              className="hidden"
+            />
+
+            {/* Tombol Aksi Upload / Hapus */}
+            <div className="mt-3.5 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loadingFoto}
+                className="inline-flex items-center gap-1.5 rounded-full bg-brand-light px-3.5 py-1.5 text-xs font-bold text-brand-dark hover:bg-brand-mint/60 transition-colors cursor-pointer"
+              >
+                <Upload size={13} /> {loadingFoto ? 'Memproses...' : 'Pilih Foto'}
+              </button>
+
+              {isFotoKustom && (
+                <button
+                  type="button"
+                  onClick={hapusFoto}
+                  className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors cursor-pointer"
+                  title="Hapus foto dan kembali ke karakter emoji"
+                >
+                  <Trash2 size={13} /> Hapus Foto
+                </button>
+              )}
+            </div>
+
+            {errorFoto && <p className="mt-2 text-xs font-medium text-red-500">{errorFoto}</p>}
+
             <div className="mt-4 text-xl font-extrabold">{form.nama || 'Nama kamu'}</div>
             <span className="mt-1 inline-block rounded-full bg-brand-light px-3 py-1 text-xs font-bold text-brand-dark">Mahasiswa Semester {form.semester}</span>
             <div className="mt-1 text-xs text-slate-500">{form.email || 'Email belum diisi'}</div>
-            <div className="mt-4 border-t border-slate-100 pt-4">
-              <div className="label">Pilih karakter kos</div>
+
+            <div className="mt-5 border-t border-slate-100 pt-4">
+              <div className="label">Atau pilih karakter kos</div>
               <div className="flex flex-wrap justify-center gap-2">
-                {AVATARS.map((a) => <button key={a} aria-label={`Avatar ${a}`} onClick={() => ubah({ avatar: a })} className={`flex h-11 w-11 items-center justify-center rounded-full text-2xl transition-transform hover:scale-110 ${form.avatar === a ? 'bg-brand-mint ring-2 ring-brand-dark' : 'bg-slate-100'}`}>{a}</button>)}
+                {AVATARS.map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    aria-label={`Avatar ${a}`}
+                    onClick={() => {
+                      ubah({ avatar: a });
+                      setProfile({ avatar: a });
+                    }}
+                    className={`flex h-11 w-11 items-center justify-center rounded-full text-2xl transition-transform hover:scale-110 cursor-pointer ${
+                      form.avatar === a ? 'bg-brand-mint ring-2 ring-brand-dark' : 'bg-slate-100'
+                    }`}
+                  >
+                    {a}
+                  </button>
+                ))}
               </div>
             </div>
           </section>
