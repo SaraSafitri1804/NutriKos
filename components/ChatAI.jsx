@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { Sparkles, MessageSquare, X, Send, Bot, User, ArrowRight } from 'lucide-react';
+import { Sparkles, MessageSquare, X, Send, Bot, User, ArrowRight, Maximize2, Minimize2 } from 'lucide-react';
 import { useApp } from './AppProvider';
 import { chatAI } from '@/lib/ai';
 
@@ -12,13 +12,107 @@ const CONTOH_PERTANYAAN = [
   'Sayur apa yang paling awet di kamar kos?',
 ];
 
+const UKURAN_DEFAULT = { w: 420, h: 560 };
+const STORAGE_KEY_UKURAN = 'nutrikos_chatai_size';
+
 export default function ChatAI() {
   const { profile } = useApp();
   const pathname = usePathname();
   const [buka, setBuka] = useState(false);
+  const [diperbesar, setDiperbesar] = useState(false);
+  const [ukuran, setUkuran] = useState(UKURAN_DEFAULT);
+  const [sedangResize, setSedangResize] = useState(false);
   const [pesan, setPesan] = useState('');
   const [loading, setLoading] = useState(false);
+  const panelRef = useRef(null);
+  const dragStateRef = useRef(null);
   const namaDepan = profile?.nama?.split(' ')[0] || 'Sobat';
+
+  // Muat ukuran tersimpan dari localStorage saat client mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_UKURAN);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed?.w === 'number' && typeof parsed?.h === 'number') {
+          setUkuran({
+            w: Math.max(320, Math.min(parsed.w, window.innerWidth - 48)),
+            h: Math.max(380, Math.min(parsed.h, window.innerHeight - 48)),
+          });
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Tangani drag-to-resize dari tepi kiri, atas, atau sudut kiri-atas
+  useEffect(() => {
+    if (!sedangResize) return;
+
+    const handleMove = (e) => {
+      const state = dragStateRef.current;
+      if (!state) return;
+
+      const maxW = Math.max(360, window.innerWidth - 48);
+      const maxH = Math.max(420, window.innerHeight - 48);
+
+      setUkuran((prev) => {
+        let nextW = prev.w;
+        let nextH = prev.h;
+
+        if (state.arah === 'kiri' || state.arah === 'pojok') {
+          const deltaX = state.startX - e.clientX;
+          nextW = Math.round(Math.max(320, Math.min(maxW, state.startW + deltaX)));
+        }
+        if (state.arah === 'atas' || state.arah === 'pojok') {
+          const deltaY = state.startY - e.clientY;
+          nextH = Math.round(Math.max(380, Math.min(maxH, state.startH + deltaY)));
+        }
+        return { w: nextW, h: nextH };
+      });
+    };
+
+    const handleUp = () => {
+      setSedangResize(false);
+      dragStateRef.current = null;
+      setUkuran((current) => {
+        try {
+          localStorage.setItem(STORAGE_KEY_UKURAN, JSON.stringify(current));
+        } catch {}
+        return current;
+      });
+    };
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp);
+    window.addEventListener('pointercancel', handleUp);
+    return () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+      window.removeEventListener('pointercancel', handleUp);
+    };
+  }, [sedangResize]);
+
+  const mulaiResize = (arah, e) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    e.preventDefault();
+    const rect = panelRef.current?.getBoundingClientRect();
+    const startW = rect ? rect.width : ukuran.w;
+    const startH = rect ? rect.height : ukuran.h;
+
+    if (diperbesar) {
+      setDiperbesar(false);
+      setUkuran({ w: Math.round(startW), h: Math.round(startH) });
+    }
+
+    dragStateRef.current = {
+      arah,
+      startX: e.clientX,
+      startY: e.clientY,
+      startW,
+      startH,
+    };
+    setSedangResize(true);
+  };
 
   // Otomatis tutup jendela chat saat berpindah halaman agar tidak menutupi tampilan
   useEffect(() => {
@@ -116,7 +210,35 @@ export default function ChatAI() {
 
       {/* Chat Window Panel */}
       {buka && (
-        <div className="fixed inset-x-0 bottom-0 top-12 sm:top-auto sm:inset-auto sm:bottom-6 sm:right-6 z-50 flex w-full sm:w-96 flex-col sm:h-[540px] sm:max-h-[85vh] rounded-t-[2rem] sm:rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-200">
+        <div
+          ref={panelRef}
+          style={{
+            '--chat-w': diperbesar ? 'min(760px, calc(100vw - 3rem))' : `${ukuran.w}px`,
+            '--chat-h': diperbesar ? 'min(820px, calc(100vh - 4rem))' : `${ukuran.h}px`,
+          }}
+          className={`fixed inset-x-0 bottom-0 top-12 sm:top-auto sm:inset-auto sm:bottom-6 sm:right-6 z-50 flex w-full sm:w-[var(--chat-w)] flex-col sm:h-[var(--chat-h)] sm:max-h-[92vh] sm:max-w-[calc(100vw-3rem)] rounded-t-[2rem] sm:rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-6 ${
+            sedangResize ? 'select-none transition-none' : 'duration-200 transition-[width,height]'
+          }`}
+        >
+          {/* Handle Resize Desktop: Tepi Kiri, Tepi Atas, & Sudut Kiri-Atas */}
+          <div
+            onPointerDown={(e) => mulaiResize('kiri', e)}
+            title="Geser untuk ubah lebar"
+            className="hidden sm:block absolute left-0 top-4 bottom-4 w-2 cursor-ew-resize z-20 hover:bg-brand-mint/30 transition-colors"
+          />
+          <div
+            onPointerDown={(e) => mulaiResize('atas', e)}
+            title="Geser untuk ubah tinggi"
+            className="hidden sm:block absolute top-0 left-4 right-4 h-2 cursor-ns-resize z-20 hover:bg-brand-mint/30 transition-colors"
+          />
+          <div
+            onPointerDown={(e) => mulaiResize('pojok', e)}
+            title="Geser sudut untuk ubah ukuran"
+            className="hidden sm:flex items-center justify-center absolute top-0 left-0 w-4 h-4 cursor-nwse-resize z-30 group"
+          >
+            <span className="h-2 w-2 rounded-tl-md border-t-2 border-l-2 border-white/60 group-hover:border-white transition-colors" />
+          </div>
+
           {/* Header */}
           <div className="flex items-center justify-between bg-gradient-to-r from-brand-dark to-brand-deeper px-4 py-3.5 text-white shrink-0">
             <div className="flex items-center gap-2.5">
@@ -133,13 +255,26 @@ export default function ChatAI() {
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => setBuka(false)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:bg-white/20 hover:text-white transition-colors"
-              aria-label="Tutup Chat"
-            >
-              <X size={20} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setDiperbesar((prev) => !prev)}
+                className="hidden sm:flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:bg-white/20 hover:text-white transition-colors"
+                aria-label={diperbesar ? 'Perkecil Chat' : 'Perbesar Chat'}
+                title={diperbesar ? 'Perkecil tampilan AI' : 'Perbesar tampilan AI'}
+              >
+                {diperbesar ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+              </button>
+              <button
+                type="button"
+                onClick={() => setBuka(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:bg-white/20 hover:text-white transition-colors"
+                aria-label="Tutup Chat"
+                title="Tutup Chat"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Quick Prompt Chips */}
