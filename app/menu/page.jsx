@@ -533,7 +533,7 @@ export default function MenuPage() {
 
       {/* MODAL 1: EDIT REKOMENDASI MENU */}
       {modalEditOpen && resepAktif && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setModalEditOpen(false)}
@@ -691,7 +691,7 @@ export default function MenuPage() {
 
       {/* MODAL 2: TAMBAH MENU KE JADWAL */}
       {modalTambahOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setModalTambahOpen(false)}
@@ -747,7 +747,7 @@ export default function MenuPage() {
 
       {/* MODAL 3: KONFIRMASI HAPUS MENU */}
       {modalHapusOpen && resepAktif && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setModalHapusOpen(false)}
@@ -780,7 +780,7 @@ export default function MenuPage() {
       )}
       {/* MODAL 4: HASIL REKOMENDASI AI */}
       {modalAIOpen && ai && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setModalAIOpen(false)}
